@@ -53,7 +53,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       if (err?.code === "auth/popup-closed-by-user") {
         setErrorMsg("Popup closed. Try again.");
       } else {
-        setErrorMsg("Could not sign in with Google. Check popup or network.");
+        setErrorMsg("Google sign-in failed.");
       }
     } finally {
       setGoogleLoading(false);
@@ -92,30 +92,28 @@ export default function AppShell({ children }: { children: ReactNode }) {
       const code = err?.code || "";
 
       if (code === "auth/user-not-found") {
-        setErrorMsg("No account with that email.");
+        setErrorMsg("No account found with that email.");
       } else if (code === "auth/wrong-password") {
         setErrorMsg("Incorrect password.");
       } else if (code === "auth/email-already-in-use") {
-        setErrorMsg("That email is already in use.");
+        setErrorMsg("This email is already used.");
       } else if (code === "auth/invalid-email") {
         setErrorMsg("Invalid email format.");
       } else {
-        setErrorMsg("Authentication failed. Try again.");
+        setErrorMsg("Authentication failed.");
       }
     } finally {
       setEmailLoading(false);
     }
   }
 
-  // While checking existing session
+  // Checking existing session
   if (checking) {
     return (
       <div className="min-h-screen flex justify-center">
         <div className="w-full max-w-md flex flex-col bg-slate-950/70 border-x border-slate-800/80">
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-xs text-slate-400">
-              Checking your FORZA session…
-            </p>
+            <p className="text-xs text-slate-400">Checking session…</p>
           </div>
         </div>
       </div>
@@ -129,22 +127,21 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="w-full max-w-md flex flex-col bg-slate-950/70 border-x border-slate-800/80">
           <div className="flex-1 flex items-center justify-center px-4">
             <section className="w-full rounded-3xl border border-slate-800 bg-slate-900/90 p-4 space-y-4 text-xs shadow-[0_18px_50px_rgba(0,0,0,0.7)]">
+              
               {/* Title */}
               <div className="space-y-1">
                 <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">
                   Welcome to FORZA
                 </p>
                 <h1 className="text-lg font-semibold text-slate-100">
-                  Sign in to enter the hub
+                  Sign in to continue
                 </h1>
                 <p className="text-[11px] text-slate-400">
-                  Use your email & password or continue with Google. Your
-                  slips, community posts and preferences stay linked to your
-                  account.
+                  Use email & password or Google to access FORZA.
                 </p>
               </div>
 
-              {/* Auth mode toggle */}
+              {/* Sign in / Create account toggle */}
               <div className="inline-flex rounded-full bg-slate-900 border border-slate-700 p-0.5 text-[11px]">
                 <button
                   type="button"
@@ -170,7 +167,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 </button>
               </div>
 
-              {/* Email + password form */}
+              {/* Email/password form */}
               <form onSubmit={handleEmailSubmit} className="space-y-2">
                 <div className="space-y-1">
                   <label className="text-[10px] text-slate-400">Email</label>
@@ -185,9 +182,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] text-slate-400">
-                    Password
-                  </label>
+                  <label className="text-[10px] text-slate-400">Password</label>
                   <input
                     type="password"
                     autoComplete={
@@ -207,11 +202,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
                     </label>
                     <input
                       type="password"
-                      autoComplete="new-password"
                       value={confirmPassword}
-                      onChange={(e) =>
-                        setConfirmPassword(e.target.value)
-                      }
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-1.5 text-[11px] text-slate-100"
                       placeholder="Repeat your password"
                     />
@@ -230,7 +222,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   {emailLoading
                     ? authMode === "signin"
                       ? "Signing in…"
-                      : "Creating account…"
+                      : "Creating…"
                     : authMode === "signin"
                     ? "Sign in with email"
                     : "Create account"}
@@ -246,22 +238,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 <div className="h-px flex-1 bg-slate-800" />
               </div>
 
-              {/* Google button BELOW email/password */}
+              {/* Google Sign-In */}
               <button
                 onClick={handleGoogleSignIn}
                 disabled={googleLoading}
                 className="w-full rounded-xl bg-emerald-500 text-slate-950 font-semibold py-2 text-xs flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 <span>Google</span>
-                {googleLoading && (
-                  <span className="text-[10px]">…</span>
-                )}
+                {googleLoading && <span className="text-[10px]">…</span>}
               </button>
 
-              <p className="text-[10px] text-slate-500">
-                We only use your basic profile (name & email) to create your
-                FORZA account. You can sign out from your profile anytime.
-              </p>
             </section>
           </div>
         </div>
@@ -269,7 +255,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  // LOGGED IN → show full app shell
+  // LOGGED IN → full app
   return (
     <div className="min-h-screen flex justify-center">
       <div className="w-full max-w-md flex flex-col bg-slate-950/70 border-x border-slate-800/80">
