@@ -1,6 +1,11 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import {
+  ReactNode,
+  useEffect,
+  useState,
+  FormEvent,
+} from "react";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import { auth } from "@/lib/firebaseClient";
@@ -9,87 +14,252 @@ import {
   User,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
 } from "firebase/auth";
 
 const provider = new GoogleAuthProvider();
 
+type AuthMode = "signin" | "signup";
+
 export default function AppShell({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [signingIn, setSigningIn] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  const [authMode, setAuthMode] = useState<AuthMode>("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      setLoading(false);
+      setChecking(false);
     });
     return () => unsub();
   }, []);
 
-  async function handleSignIn() {
+  async function handleGoogleSignIn() {
     try {
-      setAuthError(null);
-      setSigningIn(true);
+      setErrorMsg(null);
+      setGoogleLoading(true);
       await signInWithPopup(auth, provider);
     } catch (err: any) {
-      console.error("[FORZA] Global sign-in error:", err);
+      console.error("[FORZA] Google sign-in error:", err);
       if (err?.code === "auth/popup-closed-by-user") {
-        setAuthError("Popup closed. Try again.");
+        setErrorMsg("Popup closed. Try again.");
       } else {
-        setAuthError("Could not sign in. Check popup or network.");
+        setErrorMsg("Could not sign in with Google. Check popup or network.");
       }
     } finally {
-      setSigningIn(false);
+      setGoogleLoading(false);
     }
   }
 
-  // While checking auth, show a simple loader in the shell
-  if (loading) {
+  async function handleEmailSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    try {
+      setErrorMsg(null);
+      setEmailLoading(true);
+
+      if (!email || !password) {
+        setErrorMsg("Email and password are required.");
+        return;
+      }
+
+      if (authMode === "signup") {
+        if (password.length < 6) {
+          setErrorMsg("Password must be at least 6 characters.");
+          return;
+        }
+        if (password !== confirmPassword) {
+          setErrorMsg("Passwords do not match.");
+          return;
+        }
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
+      } else {
+        await signInWithEmailAndPassword(auth, email.trim(), password);
+      }
+
+      setPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      console.error("[FORZA] Email auth error:", err);
+      const code = err?.code || "";
+
+      if (code === "auth/user-not-found") {
+        setErrorMsg("No account with that email.");
+      } else if (code === "auth/wrong-password") {
+        setErrorMsg("Incorrect password.");
+      } else if (code === "auth/email-already-in-use") {
+        setErrorMsg("That email is already in use.");
+      } else if (code === "auth/invalid-email") {
+        setErrorMsg("Invalid email format.");
+      } else {
+        setErrorMsg("Authentication failed. Try again.");
+      }
+    } finally {
+      setEmailLoading(false);
+    }
+  }
+
+  // While checking existing session
+  if (checking) {
     return (
       <div className="min-h-screen flex justify-center">
         <div className="w-full max-w-md flex flex-col bg-slate-950/70 border-x border-slate-800/80">
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-xs text-slate-400">Checking your FORZA session…</p>
+            <p className="text-xs text-slate-400">
+              Checking your FORZA session…
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  // If not signed in, show full-screen sign-in view (no access to app yet)
+  // NOT LOGGED IN → show auth screen
   if (!user) {
     return (
       <div className="min-h-screen flex justify-center">
         <div className="w-full max-w-md flex flex-col bg-slate-950/70 border-x border-slate-800/80">
           <div className="flex-1 flex items-center justify-center px-4">
-            <section className="w-full rounded-3xl border border-slate-800 bg-slate-900/90 p-4 space-y-3 text-xs shadow-[0_18px_50px_rgba(0,0,0,0.7)]">
-              <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">
-                Welcome to FORZA
-              </p>
-              <h1 className="text-lg font-semibold text-slate-100">
-                Sign in to enter the hub
-              </h1>
-              <p className="text-[11px] text-slate-400">
-                FORZA uses your Google account to keep your slips, community posts and
-                preferences in sync. You need to sign in to use the app.
-              </p>
+            <section className="w-full rounded-3xl border border-slate-800 bg-slate-900/90 p-4 space-y-4 text-xs shadow-[0_18px_50px_rgba(0,0,0,0.7)]">
+              {/* Title */}
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">
+                  Welcome to FORZA
+                </p>
+                <h1 className="text-lg font-semibold text-slate-100">
+                  Sign in to enter the hub
+                </h1>
+                <p className="text-[11px] text-slate-400">
+                  Use your email & password or continue with Google. Your
+                  slips, community posts and preferences stay linked to your
+                  account.
+                </p>
+              </div>
 
-              {authError && (
-                <p className="text-[11px] text-rose-300">{authError}</p>
-              )}
+              {/* Auth mode toggle */}
+              <div className="inline-flex rounded-full bg-slate-900 border border-slate-700 p-0.5 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("signin")}
+                  className={`px-3 py-1 rounded-full ${
+                    authMode === "signin"
+                      ? "bg-slate-800 text-slate-100"
+                      : "text-slate-400"
+                  }`}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("signup")}
+                  className={`px-3 py-1 rounded-full ${
+                    authMode === "signup"
+                      ? "bg-slate-800 text-slate-100"
+                      : "text-slate-400"
+                  }`}
+                >
+                  Create account
+                </button>
+              </div>
 
+              {/* Email + password form */}
+              <form onSubmit={handleEmailSubmit} className="space-y-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400">Email</label>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-1.5 text-[11px] text-slate-100"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    autoComplete={
+                      authMode === "signup" ? "new-password" : "current-password"
+                    }
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-1.5 text-[11px] text-slate-100"
+                    placeholder="At least 6 characters"
+                  />
+                </div>
+
+                {authMode === "signup" && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400">
+                      Confirm password
+                    </label>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) =>
+                        setConfirmPassword(e.target.value)
+                      }
+                      className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-1.5 text-[11px] text-slate-100"
+                      placeholder="Repeat your password"
+                    />
+                  </div>
+                )}
+
+                {errorMsg && (
+                  <p className="text-[11px] text-rose-300">{errorMsg}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={emailLoading}
+                  className="w-full rounded-xl bg-slate-800 text-slate-50 font-semibold py-2 text-xs disabled:opacity-60"
+                >
+                  {emailLoading
+                    ? authMode === "signin"
+                      ? "Signing in…"
+                      : "Creating account…"
+                    : authMode === "signin"
+                    ? "Sign in with email"
+                    : "Create account"}
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="flex items-center gap-2">
+                <div className="h-px flex-1 bg-slate-800" />
+                <span className="text-[10px] text-slate-500">
+                  or continue with
+                </span>
+                <div className="h-px flex-1 bg-slate-800" />
+              </div>
+
+              {/* Google button BELOW email/password */}
               <button
-                onClick={handleSignIn}
-                disabled={signingIn}
-                className="mt-1 w-full rounded-xl bg-emerald-500 text-slate-950 font-semibold py-2 text-xs flex items-center justify-center gap-2 disabled:opacity-60"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+                className="w-full rounded-xl bg-emerald-500 text-slate-950 font-semibold py-2 text-xs flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <span>Continue with Google</span>
-                {signingIn && <span className="text-[10px]">...</span>}
+                <span>Google</span>
+                {googleLoading && (
+                  <span className="text-[10px]">…</span>
+                )}
               </button>
 
-              <p className="text-[10px] text-slate-500 mt-2">
-                We only use your basic Google profile (name & email) to create your
+              <p className="text-[10px] text-slate-500">
+                We only use your basic profile (name & email) to create your
                 FORZA account. You can sign out from your profile anytime.
               </p>
             </section>
@@ -99,15 +269,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  // Signed-in state: show full app (header + content + bottom nav)
+  // LOGGED IN → show full app shell
   return (
     <div className="min-h-screen flex justify-center">
       <div className="w-full max-w-md flex flex-col bg-slate-950/70 border-x border-slate-800/80">
         <div className="flex-1 pb-16 pt-1">
           <Header />
-          <div className="px-4">
-            {children}
-          </div>
+          <div className="px-4">{children}</div>
         </div>
         <BottomNav />
       </div>
