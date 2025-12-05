@@ -1,65 +1,64 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
+import {
+  Rss,
+  Target,
+  ListChecks,
+  MessageCircle,
+  User,
+} from "lucide-react";
 
-type TabItem = {
+type Tab = {
   href: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
 };
 
-const TABS: TabItem[] = [
-  { href: "/", label: "Home", icon: "🏠" },
-  { href: "/matches", label: "Matches", icon: "⚽" },
-  { href: "/communities", label: "Community", icon: "👥" },
-  { href: "/profile", label: "Profile", icon: "👤" },
+const tabs: Tab[] = [
+  { href: "/feed", label: "Feed", icon: Rss },
+  { href: "/matches", label: "Matches", icon: Target },
+  { href: "/build-slip", label: "Build Slip", icon: ListChecks },
+  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
 
-  // Normalize active route (e.g. /matches/123 -> /matches)
-  const activeBase = pathname === "/" ? "/" : `/${pathname.split("/")[1]}`;
-
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-20">
-      <div className="mx-auto max-w-md">
-        <div className="mx-3 mb-3 rounded-2xl border border-slate-800/90 bg-slate-950/90 backdrop-blur-sm shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
-          <div className="flex items-center justify-between px-2 py-1">
-            {TABS.map((tab) => {
-              const isActive = activeBase === tab.href;
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className="flex-1"
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-20">
+      <div className="mx-auto bg-[#050505]/98 border-t border-[#1F1F1F] backdrop-blur-sm">
+        <div className="flex items-center justify-between px-4 py-2">
+          {tabs.map((tab) => {
+            const active =
+              pathname === tab.href ||
+              (tab.href !== "/feed" && pathname.startsWith(tab.href));
+            const Icon = tab.icon;
+
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`flex-1 flex items-center justify-center py-1 transition-all duration-200 ${
+                  active ? "text-[#A4FF2F]" : "text-[#7A7A7A]"
+                }`}
+              >
+                <div
+                  className={`flex items-center justify-center h-9 w-9 rounded-full transition-all duration-200 ${
+                    active ? "bg-[#111111] shadow-[0_0_20px_rgba(164,255,47,0.25)]" : ""
+                  }`}
                 >
-                  <div className="flex flex-col items-center justify-center py-1.5 gap-0.5">
-                    <span
-                      className={`text-base leading-none ${
-                        isActive ? "scale-110" : "opacity-80"
-                      }`}
-                    >
-                      {tab.icon}
-                    </span>
-                    <span
-                      className={`text-[10px] ${
-                        isActive
-                          ? "text-emerald-300 font-semibold"
-                          : "text-slate-400"
-                      }`}
-                    >
-                      {tab.label}
-                    </span>
-                    {isActive && (
-                      <div className="mt-0.5 h-0.5 w-6 rounded-full bg-emerald-400/80" />
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                  <Icon
+                    size={20}
+                    className={active ? "stroke-[#A4FF2F]" : "stroke-[#9A9A9A]"}
+                  />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>

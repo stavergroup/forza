@@ -1,186 +1,205 @@
-import Link from "next/link";
-import Image from "next/image";
-import { fetchFromApiFootball } from "@/lib/apiFootball";
-import { demoMatches } from "@/lib/demoData";
+import Header from "@/components/Header";
+import { CalendarDays, SlidersHorizontal, Star } from "lucide-react";
 
-type MatchListFixture = {
+type MatchStatus = "LIVE" | "UPCOMING" | "FT";
+
+type DemoMatch = {
   id: number;
   league: string;
-  leagueRound?: string;
+  minuteOrTime: string;
+  status: MatchStatus;
   homeTeam: string;
   awayTeam: string;
-  homeLogo: string | null;
-  awayLogo: string | null;
-  dateLabel: string;
-  timeLabel: string;
-  statusShort: string;
+  homeAbbr: string;
+  awayAbbr: string;
+  homeScore?: number;
+  awayScore?: number;
+  followed?: boolean;
 };
 
-async function fetchTodayFixtures(): Promise<MatchListFixture[]> {
-  try {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    const res = await fetchFromApiFootball<any>({
-      path: "/fixtures",
-      searchParams: { date: today },
-    });
+const demoMatches: DemoMatch[] = [
+  {
+    id: 1,
+    league: "Ligue 1",
+    minuteOrTime: "62'",
+    status: "LIVE",
+    homeTeam: "PSG",
+    awayTeam: "Marseille",
+    homeAbbr: "PSG",
+    awayAbbr: "OM",
+    homeScore: 1,
+    awayScore: 0,
+    followed: true,
+  },
+  {
+    id: 2,
+    league: "Premier League",
+    minuteOrTime: "18:30",
+    status: "UPCOMING",
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+    homeAbbr: "ARS",
+    awayAbbr: "CHE",
+  },
+  {
+    id: 3,
+    league: "Serie A",
+    minuteOrTime: "FT",
+    status: "FT",
+    homeTeam: "Inter",
+    awayTeam: "AC Milan",
+    homeAbbr: "INT",
+    awayAbbr: "ACM",
+    homeScore: 2,
+    awayScore: 1,
+  },
+  {
+    id: 4,
+    league: "La Liga",
+    minuteOrTime: "23:00",
+    status: "UPCOMING",
+    homeTeam: "Barcelona",
+    awayTeam: "Real Madrid",
+    homeAbbr: "BAR",
+    awayAbbr: "RM",
+    followed: true,
+  },
+];
 
-    const arr: any[] = res?.response ?? [];
-    if (!arr.length) {
-      console.warn("[FORZA MATCHES] No fixtures from API. Using demo matches.");
-      return demoMatches.map((m) => ({
-        id: Number(m.id),
-        league: m.league,
-        leagueRound: undefined,
-        homeTeam: m.home,
-        awayTeam: m.away,
-        homeLogo: null,
-        awayLogo: null,
-        dateLabel: "Demo",
-        timeLabel: m.time,
-        statusShort: m.status,
-      }));
-    }
-
-    return arr.map((item) => {
-      const fixture = item.fixture ?? {};
-      const league = item.league ?? {};
-      const teams = item.teams ?? {};
-      const statusShort: string = fixture.status?.short ?? "NS";
-      const dateObj = fixture.date ? new Date(fixture.date) : null;
-
-      return {
-        id: fixture.id as number,
-        league: league.name ?? "Unknown league",
-        leagueRound: league.round ?? undefined,
-        homeTeam: teams.home?.name ?? "Home",
-        awayTeam: teams.away?.name ?? "Away",
-        homeLogo: teams.home?.logo ?? null,
-        awayLogo: teams.away?.logo ?? null,
-        dateLabel: dateObj
-          ? dateObj.toLocaleDateString([], { day: "2-digit", month: "short" })
-          : "",
-        timeLabel: dateObj
-          ? dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-          : "",
-        statusShort,
-      };
-    });
-  } catch (error) {
-    console.error("[FORZA MATCHES] Failed to fetch fixtures:", error);
-    return demoMatches.map((m) => ({
-      id: Number(m.id),
-      league: m.league,
-      leagueRound: undefined,
-      homeTeam: m.home,
-      awayTeam: m.away,
-      homeLogo: null,
-      awayLogo: null,
-      dateLabel: "Demo",
-      timeLabel: m.time,
-      statusShort: m.status,
-    }));
-  }
-}
-
-function statusLabel(short: string) {
-  const s = (short || "").toUpperCase();
-  if (s === "NS" || s === "TBD") return "Upcoming";
-  if (s === "FT") return "Finished";
-  if (["1H", "2H", "HT", "ET", "LIVE"].includes(s)) return "Live";
-  return s || "Unknown";
-}
-
-export default async function MatchesPage() {
-  const fixtures = await fetchTodayFixtures();
+export default function MatchesPage() {
+  const liveMatches = demoMatches.filter((m) => m.status === "LIVE");
 
   return (
-    <main className="pt-2 pb-4 space-y-4">
-      <section className="space-y-1">
-        <h1 className="text-sm font-semibold text-slate-100">
-          Today's matches
-        </h1>
-        <p className="text-[11px] text-slate-400">
-          Explore today's fixtures and tap any match to see AI insights and build your slip.
-        </p>
-      </section>
+    <>
+      <Header />
+      <div className="p-4 space-y-4 text-sm">
+        {/* Day selector */}
+        <section className="flex items-center justify-between gap-2">
+          <div className="flex flex-1 items-center gap-1 bg-[#050505] border border-[#1F1F1F] rounded-full px-1 py-1 text-[11px]">
+            <button className="flex-1 rounded-full bg-[#111111] text-white py-1.5">
+              Today
+            </button>
+            <button className="flex-1 rounded-full text-[#888] py-1.5">
+              Tomorrow
+            </button>
+            <button className="flex-1 rounded-full text-[#888] py-1.5">
+              Weekend
+            </button>
+          </div>
+          <button className="ml-1 h-8 w-8 flex items-center justify-center rounded-full border border-[#1F1F1F] bg-[#050505]">
+            <CalendarDays size={16} className="stroke-[#B5B5B5]" />
+          </button>
+        </section>
 
-      {fixtures.length === 0 ? (
-        <p className="text-[11px] text-slate-500">
-          No fixtures available for today.
-        </p>
-      ) : (
-        <section className="space-y-2">
-          {fixtures.map((f) => (
-            <Link
-              key={f.id}
-              href={`/matches/${f.id}`}
-              className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/85 px-3 py-3 text-[11px] hover:border-emerald-400/40 hover:bg-slate-900/90 transition-colors"
+        {/* League + filter bar */}
+        <section className="flex items-center justify-between gap-2 text-[11px]">
+          <button className="flex items-center gap-1 rounded-full bg-[#111111] border border-[#1F1F1F] px-3 py-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#A4FF2F]" />
+            <span className="text-[#B5B5B5]">All leagues</span>
+          </button>
+          <button className="flex items-center gap-1 rounded-full bg-[#050505] border border-[#1F1F1F] px-2.5 py-1.5 text-[#B5B5B5]">
+            <SlidersHorizontal size={14} className="stroke-[#B5B5B5]" />
+            <span>Filters</span>
+          </button>
+        </section>
+
+        {/* Live now strip */}
+        {liveMatches.length > 0 && (
+          <section className="rounded-2xl bg-[#111111] border border-[#1F1F1F] px-3 py-2 text-[11px]">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF4D4D]" />
+              <span className="uppercase tracking-[0.18em] text-[#B5B5B5]">
+                Live now
+              </span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar">
+              {liveMatches.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex-shrink-0 min-w-[150px] rounded-xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2"
+                >
+                  <p className="text-[10px] text-[#888] mb-1">{m.league}</p>
+                  <p className="text-[11px] text-[#E5E5E5]">
+                    {m.homeTeam} {m.homeScore} - {m.awayScore} {m.awayTeam}
+                  </p>
+                  <p className="text-[10px] text-[#A4FF2F] mt-0.5">
+                    {m.minuteOrTime}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Main fixtures list - compact rows with star icon */}
+        <section className="space-y-0.5">
+          {demoMatches.map((m) => (
+            <div
+              key={m.id}
+              className="px-3 py-2.5 rounded-xl bg-[#050505] border border-[#111111] flex gap-3 items-center"
             >
-
-              {/* Left side: stacked logos */}
-              <div className="flex flex-col items-center gap-1 shrink-0">
-                <TeamLogo name={f.homeTeam} logo={f.homeLogo} />
-                <TeamLogo name={f.awayTeam} logo={f.awayLogo} />
+              {/* Time / minute column */}
+              <div className="w-11 text-[11px]">
+                <span
+                  className={
+                    m.status === "LIVE"
+                      ? "text-[#A4FF2F]"
+                      : "text-[#B5B5B5]"
+                  }
+                >
+                  {m.status === "FT" ? "FT" : m.minuteOrTime}
+                </span>
               </div>
 
               {/* Teams + league */}
-              <div className="flex-1 min-w-0">
-                <p className="text-slate-100 truncate">
-                  {f.homeTeam} <span className="text-slate-500">vs</span> {f.awayTeam}
-                </p>
-                <p className="text-[10px] text-slate-500 truncate">
-                  {f.league}
-                  {f.leagueRound ? ` · ${f.leagueRound}` : ""}
-                </p>
+              <div className="flex-1">
+                <p className="text-[10px] text-[#777] mb-1">{m.league}</p>
+                {/* Home row */}
+                <div className="flex items-center justify-between text-[12px]">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="h-6 w-6 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[9px] text-[#A4FF2F]">
+                      {m.homeAbbr}
+                    </div>
+                    <span className="text-[#E5E5E5] truncate">
+                      {m.homeTeam}
+                    </span>
+                  </div>
+                  <div className="w-6 text-right text-[12px] text-[#E5E5E5]">
+                    {m.homeScore !== undefined ? m.homeScore : "-"}
+                  </div>
+                </div>
+                {/* Away row */}
+                <div className="flex items-center justify-between text-[12px] mt-0.5">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="h-6 w-6 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[9px] text-[#B5B5B5]">
+                      {m.awayAbbr}
+                    </div>
+                    <span className="text-[#B5B5B5] truncate">
+                      {m.awayTeam}
+                    </span>
+                  </div>
+                  <div className="w-6 text-right text-[12px] text-[#E5E5E5]">
+                    {m.awayScore !== undefined ? m.awayScore : "-"}
+                  </div>
+                </div>
               </div>
 
-              {/* Time + status */}
-              <div className="text-right shrink-0">
-                <p className="text-slate-200">{f.timeLabel}</p>
-                <p className="text-[10px] text-slate-500">{statusLabel(f.statusShort)}</p>
-                {f.dateLabel && (
-                  <p className="text-[9px] text-slate-500">{f.dateLabel}</p>
-                )}
-              </div>
-
-            </Link>
+              {/* Star follow icon */}
+              <button
+                className="w-7 h-7 flex items-center justify-center rounded-full border border-[#1F1F1F] bg-[#050505] hover:bg-[#111111] active:scale-95 transition"
+                aria-label="Follow match"
+              >
+                <Star
+                  size={16}
+                  className={
+                    m.followed ? "fill-[#A4FF2F] stroke-[#A4FF2F]" : "stroke-[#B5B5B5]"
+                  }
+                />
+              </button>
+            </div>
           ))}
         </section>
-      )}
-    </main>
-  );
-}
-
-type TeamLogoProps = {
-  name: string;
-  logo: string | null;
-};
-
-function TeamLogo({ name, logo }: TeamLogoProps) {
-  if (!logo) {
-    const initials = name
-      .split(" ")
-      .map((x) => x[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-
-    return (
-      <div className="h-6 w-6 rounded-full bg-slate-900 border border-emerald-500/40 flex items-center justify-center text-[9px] text-emerald-300 shrink-0">
-        {initials}
       </div>
-    );
-  }
-
-  return (
-    <div className="h-6 w-6 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
-      <Image
-        src={logo}
-        alt={name}
-        width={24}
-        height={24}
-        className="object-contain"
-      />
-    </div>
+    </>
   );
 }

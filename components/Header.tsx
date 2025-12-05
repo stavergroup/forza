@@ -1,29 +1,39 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import ForzaLogo from "./ForzaLogo";
+import { Star, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
-  const pathname = usePathname();
+  const router = useRouter();
 
   return (
-    <header className="w-full px-4 pt-3 pb-2 bg-transparent">
-      <div className="flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <ForzaLogo size={28} />
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold tracking-tight bg-gradient-to-r from-emerald-300 to-green-400 bg-clip-text text-transparent">
-              FORZA
-            </span>
-            <span className="text-[10px] text-slate-400">
-              Football · AI · Community
-            </span>
-          </div>
-        </Link>
-        <span className="text-[10px] px-2 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/5 text-emerald-200">
-          {pathname === "/" ? "Smart feed" : "Live beta"}
-        </span>
+    <header className="px-4 py-3 border-b border-[#1F1F1F] bg-[#0A0A0A]/90 backdrop-blur-sm flex items-center justify-between">
+      
+      {/* FORZA Logo */}
+      <div
+        onClick={() => router.push("/feed")}
+        className="h-9 w-9 rounded-xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center text-[#A4FF2F] font-bold text-[13px] cursor-pointer active:scale-95 transition"
+      >
+        FZ
+      </div>
+
+      {/* Right Icons */}
+      <div className="flex items-center gap-4">
+        {/* Star = Favorites */}
+        <button
+          onClick={() => router.push("/favorites")}
+          className="p-1.5 rounded-lg hover:bg-[#111111] active:scale-95 transition"
+        >
+          <Star size={20} className="stroke-[#AAAAAA]" />
+        </button>
+
+        {/* Search */}
+        <button
+          onClick={() => router.push("/search")}
+          className="p-1.5 rounded-lg hover:bg-[#111111] active:scale-95 transition"
+        >
+          <Search size={20} className="stroke-[#AAAAAA]" />
+        </button>
       </div>
     </header>
   );
