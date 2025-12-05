@@ -1,9 +1,8 @@
 import Header from "@/components/Header";
-import { CalendarDays, SlidersHorizontal, Star } from "lucide-react";
 
 type MatchStatus = "LIVE" | "UPCOMING" | "FT";
 
-type DemoMatch = {
+export type UiMatch = {
   id: number;
   league: string;
   minuteOrTime: string;
@@ -12,193 +11,174 @@ type DemoMatch = {
   awayTeam: string;
   homeAbbr: string;
   awayAbbr: string;
-  homeScore?: number;
-  awayScore?: number;
-  followed?: boolean;
+  homeScore?: number | null;
+  awayScore?: number | null;
 };
 
-const demoMatches: DemoMatch[] = [
-  {
-    id: 1,
-    league: "Ligue 1",
-    minuteOrTime: "62'",
-    status: "LIVE",
-    homeTeam: "PSG",
-    awayTeam: "Marseille",
-    homeAbbr: "PSG",
-    awayAbbr: "OM",
-    homeScore: 1,
-    awayScore: 0,
-    followed: true,
-  },
-  {
-    id: 2,
-    league: "Premier League",
-    minuteOrTime: "18:30",
-    status: "UPCOMING",
-    homeTeam: "Arsenal",
-    awayTeam: "Chelsea",
-    homeAbbr: "ARS",
-    awayAbbr: "CHE",
-  },
-  {
-    id: 3,
-    league: "Serie A",
-    minuteOrTime: "FT",
-    status: "FT",
-    homeTeam: "Inter",
-    awayTeam: "AC Milan",
-    homeAbbr: "INT",
-    awayAbbr: "ACM",
-    homeScore: 2,
-    awayScore: 1,
-  },
-  {
-    id: 4,
-    league: "La Liga",
-    minuteOrTime: "23:00",
-    status: "UPCOMING",
-    homeTeam: "Barcelona",
-    awayTeam: "Real Madrid",
-    homeAbbr: "BAR",
-    awayAbbr: "RM",
-    followed: true,
-  },
-];
+type ApiFixture = {
+  fixture: {
+    id: number;
+    date: string;
+    status: {
+      short: string;
+      elapsed: number | null;
+    };
+  };
+  league: {
+    name: string;
+  };
+  teams: {
+    home: { name: string };
+    away: { name: string };
+  };
+  goals: {
+    home: number | null;
+    away: number | null;
+  };
+};
 
-export default function MatchesPage() {
-  const liveMatches = demoMatches.filter((m) => m.status === "LIVE");
+async function fetchMatches(date: string): Promise<{ matches: UiMatch[]; error?: string }> {
+  const apiKey = process.env.API_FOOTBALL_KEY;
+  const baseUrl =
+    process.env.API_FOOTBALL_BASE_URL || "https://v3.football.api-sports.io";
+
+  if (!apiKey) {
+    console.error("[FORZA] Missing API_FOOTBALL_KEY env variable");
+    return { matches: [], error: "API key not configured." };
+  }
+
+  try {
+    const url = `${baseUrl}/fixtures?date=${date}&timezone=Africa/Dar_es_Salaam`;
+    const res = await fetch(url, {
+      headers: {
+        "x-apisports-key": apiKey,
+      },
+      next: { revalidate: 60 },
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("[FORZA] API-Football error:", res.status, body);
+      return {
+        matches: [],
+        error: `API error: ${res.status}`,
+      };
+    }
+
+    const json = await res.json();
+    const fixtures: ApiFixture[] = json.response || [];
+
+    const matches: UiMatch[] = fixtures.map((f) => {
+      const short = f.fixture.status.short;
+      const elapsed = f.fixture.status.elapsed;
+      const leagueName = f.league?.name || "Unknown league";
+
+      let status: MatchStatus = "UPCOMING";
+      if (short === "FT" || short === "AET" || short === "PEN") {
+        status = "FT";
+      } else if (["1H", "2H", "ET", "LIVE"].includes(short)) {
+        status = "LIVE";
+      } else {
+        status = "UPCOMING";
+      }
+
+      let minuteOrTime = "";
+      if (status === "LIVE" && typeof elapsed === "number") {
+        minuteOrTime = `${elapsed}'`;
+      } else if (status === "FT") {
+        minuteOrTime = "FT";
+      } else {
+        const dateObj = new Date(f.fixture.date);
+        minuteOrTime = dateObj
+          .toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+      }
+
+      const homeName = f.teams.home?.name || "Home";
+      const awayName = f.teams.away?.name || "Away";
+
+      const makeAbbr = (name: string) =>
+        name
+          .split(" ")
+          .map((w) => w[0])
+          .join("")
+          .slice(0, 3)
+          .toUpperCase();
+
+      return {
+        id: f.fixture.id,
+        league: leagueName,
+        minuteOrTime,
+        status,
+        homeTeam: homeName,
+        awayTeam: awayName,
+        homeAbbr: makeAbbr(homeName),
+        awayAbbr: makeAbbr(awayName),
+        homeScore: f.goals.home,
+        awayScore: f.goals.away,
+      };
+    });
+
+    return { matches };
+  } catch (err) {
+    console.error("[FORZA] Failed to fetch matches:", err);
+    return { matches: [], error: "Failed to load matches." };
+  }
+}
+
+type MatchesPageProps = {
+  searchParams: Promise<{ date?: string }>;
+};
+
+function formatYMD(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+export default async function MatchesPage({ searchParams }: MatchesPageProps) {
+  const now = new Date();
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = formatYMD(todayDate);
+
+  const tomorrowDate = new Date(todayDate);
+  tomorrowDate.setDate(todayDate.getDate() + 1);
+  const tomorrow = formatYMD(tomorrowDate);
+
+  const weekendDate = new Date(todayDate);
+  const day = weekendDate.getDay(); // 0-6, Sunday=0
+  const daysUntilSaturday = (6 - day + 7) % 7 || 7;
+  weekendDate.setDate(weekendDate.getDate() + daysUntilSaturday);
+  const weekend = formatYMD(weekendDate);
+
+  const params = await searchParams;
+  const requested = params?.date;
+  const selectedDate =
+    requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today;
+
+  let activePeriod: "today" | "tomorrow" | "weekend" | "custom" = "custom";
+  if (selectedDate === today) activePeriod = "today";
+  else if (selectedDate === tomorrow) activePeriod = "tomorrow";
+  else if (selectedDate === weekend) activePeriod = "weekend";
+
+  const { matches, error } = await fetchMatches(selectedDate);
+
+  const MatchesClient = (await import("@/components/MatchesClient")).default;
 
   return (
     <>
       <Header />
-      <div className="p-4 space-y-4 text-sm">
-        {/* Day selector */}
-        <section className="flex items-center justify-between gap-2">
-          <div className="flex flex-1 items-center gap-1 bg-[#050505] border border-[#1F1F1F] rounded-full px-1 py-1 text-[11px]">
-            <button className="flex-1 rounded-full bg-[#111111] text-white py-1.5">
-              Today
-            </button>
-            <button className="flex-1 rounded-full text-[#888] py-1.5">
-              Tomorrow
-            </button>
-            <button className="flex-1 rounded-full text-[#888] py-1.5">
-              Weekend
-            </button>
-          </div>
-          <button className="ml-1 h-8 w-8 flex items-center justify-center rounded-full border border-[#1F1F1F] bg-[#050505]">
-            <CalendarDays size={16} className="stroke-[#B5B5B5]" />
-          </button>
-        </section>
-
-        {/* League + filter bar */}
-        <section className="flex items-center justify-between gap-2 text-[11px]">
-          <button className="flex items-center gap-1 rounded-full bg-[#111111] border border-[#1F1F1F] px-3 py-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#A4FF2F]" />
-            <span className="text-[#B5B5B5]">All leagues</span>
-          </button>
-          <button className="flex items-center gap-1 rounded-full bg-[#050505] border border-[#1F1F1F] px-2.5 py-1.5 text-[#B5B5B5]">
-            <SlidersHorizontal size={14} className="stroke-[#B5B5B5]" />
-            <span>Filters</span>
-          </button>
-        </section>
-
-        {/* Live now strip */}
-        {liveMatches.length > 0 && (
-          <section className="rounded-2xl bg-[#111111] border border-[#1F1F1F] px-3 py-2 text-[11px]">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FF4D4D]" />
-              <span className="uppercase tracking-[0.18em] text-[#B5B5B5]">
-                Live now
-              </span>
-            </div>
-            <div className="flex gap-3 overflow-x-auto no-scrollbar">
-              {liveMatches.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex-shrink-0 min-w-[150px] rounded-xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2"
-                >
-                  <p className="text-[10px] text-[#888] mb-1">{m.league}</p>
-                  <p className="text-[11px] text-[#E5E5E5]">
-                    {m.homeTeam} {m.homeScore} - {m.awayScore} {m.awayTeam}
-                  </p>
-                  <p className="text-[10px] text-[#A4FF2F] mt-0.5">
-                    {m.minuteOrTime}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Main fixtures list - compact rows with star icon */}
-        <section className="space-y-0.5">
-          {demoMatches.map((m) => (
-            <div
-              key={m.id}
-              className="px-3 py-2.5 rounded-xl bg-[#050505] border border-[#111111] flex gap-3 items-center"
-            >
-              {/* Time / minute column */}
-              <div className="w-11 text-[11px]">
-                <span
-                  className={
-                    m.status === "LIVE"
-                      ? "text-[#A4FF2F]"
-                      : "text-[#B5B5B5]"
-                  }
-                >
-                  {m.status === "FT" ? "FT" : m.minuteOrTime}
-                </span>
-              </div>
-
-              {/* Teams + league */}
-              <div className="flex-1">
-                <p className="text-[10px] text-[#777] mb-1">{m.league}</p>
-                {/* Home row */}
-                <div className="flex items-center justify-between text-[12px]">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="h-6 w-6 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[9px] text-[#A4FF2F]">
-                      {m.homeAbbr}
-                    </div>
-                    <span className="text-[#E5E5E5] truncate">
-                      {m.homeTeam}
-                    </span>
-                  </div>
-                  <div className="w-6 text-right text-[12px] text-[#E5E5E5]">
-                    {m.homeScore !== undefined ? m.homeScore : "-"}
-                  </div>
-                </div>
-                {/* Away row */}
-                <div className="flex items-center justify-between text-[12px] mt-0.5">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="h-6 w-6 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[9px] text-[#B5B5B5]">
-                      {m.awayAbbr}
-                    </div>
-                    <span className="text-[#B5B5B5] truncate">
-                      {m.awayTeam}
-                    </span>
-                  </div>
-                  <div className="w-6 text-right text-[12px] text-[#E5E5E5]">
-                    {m.awayScore !== undefined ? m.awayScore : "-"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Star follow icon */}
-              <button
-                className="w-7 h-7 flex items-center justify-center rounded-full border border-[#1F1F1F] bg-[#050505] hover:bg-[#111111] active:scale-95 transition"
-                aria-label="Follow match"
-              >
-                <Star
-                  size={16}
-                  className={
-                    m.followed ? "fill-[#A4FF2F] stroke-[#A4FF2F]" : "stroke-[#B5B5B5]"
-                  }
-                />
-              </button>
-            </div>
-          ))}
-        </section>
+      <div className="p-4">
+        <MatchesClient
+          initialMatches={matches}
+          error={error}
+          selectedDate={selectedDate}
+          activePeriod={activePeriod}
+          today={today}
+          tomorrow={tomorrow}
+          weekend={weekend}
+        />
       </div>
     </>
   );
