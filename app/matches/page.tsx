@@ -114,36 +114,35 @@ export default async function MatchesPage() {
             <Link
               key={f.id}
               href={`/matches/${f.id}`}
-              className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/85 px-3 py-2 text-[11px] hover:border-emerald-400/40 hover:bg-slate-900/90 transition-colors"
+              className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/85 px-3 py-3 text-[11px] hover:border-emerald-400/40 hover:bg-slate-900/90 transition-colors"
             >
-              {/* Logos */}
-              <div className="flex flex-col items-center gap-1">
+
+              {/* Left side: stacked logos */}
+              <div className="flex flex-col items-center gap-1 shrink-0">
                 <TeamLogo name={f.homeTeam} logo={f.homeLogo} />
                 <TeamLogo name={f.awayTeam} logo={f.awayLogo} />
               </div>
 
-              {/* Teams and league */}
-              <div className="flex-1">
-                <p className="text-slate-100">
-                  {f.homeTeam} <span className="text-slate-500">vs</span>{" "}
-                  {f.awayTeam}
+              {/* Teams + league */}
+              <div className="flex-1 min-w-0">
+                <p className="text-slate-100 truncate">
+                  {f.homeTeam} <span className="text-slate-500">vs</span> {f.awayTeam}
                 </p>
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-slate-500 truncate">
                   {f.league}
                   {f.leagueRound ? ` · ${f.leagueRound}` : ""}
                 </p>
               </div>
 
               {/* Time + status */}
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <p className="text-slate-200">{f.timeLabel}</p>
-                <p className="text-[10px] text-slate-500">
-                  {statusLabel(f.statusShort)}
-                </p>
+                <p className="text-[10px] text-slate-500">{statusLabel(f.statusShort)}</p>
                 {f.dateLabel && (
                   <p className="text-[9px] text-slate-500">{f.dateLabel}</p>
                 )}
               </div>
+
             </Link>
           ))}
         </section>
@@ -167,19 +166,19 @@ function TeamLogo({ name, logo }: TeamLogoProps) {
       .toUpperCase();
 
     return (
-      <div className="h-7 w-7 rounded-full bg-slate-900 border border-emerald-500/40 flex items-center justify-center text-[10px] text-emerald-300">
+      <div className="h-6 w-6 rounded-full bg-slate-900 border border-emerald-500/40 flex items-center justify-center text-[9px] text-emerald-300 shrink-0">
         {initials}
       </div>
     );
   }
 
   return (
-    <div className="h-7 w-7 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden">
+    <div className="h-6 w-6 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
       <Image
         src={logo}
         alt={name}
-        width={28}
-        height={28}
+        width={24}
+        height={24}
         className="object-contain"
       />
     </div>
