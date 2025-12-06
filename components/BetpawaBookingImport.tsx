@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { auth, db } from "@/lib/firebaseClient";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import type { ForzaSlip } from "@/lib/bookmakers/normalize-betpawa";
+import SlipActions, { SlipBet } from "@/components/SlipActions";
 
 type ImportState = "idle" | "loading" | "success" | "error";
 
@@ -12,9 +11,6 @@ export default function BetpawaBookingImport() {
   const [status, setStatus] = useState<ImportState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [slip, setSlip] = useState<ForzaSlip | null>(null);
-  const [stake, setStake] = useState<string>("");
-  const [saving, setSaving] = useState(false);
-  const user = auth.currentUser;
 
   async function handleImport() {
     setStatus("loading");
@@ -51,48 +47,6 @@ export default function BetpawaBookingImport() {
       console.error("[FORZA] BetPawa import fetch error:", err);
       setStatus("error");
       setError("Network error. Try again.");
-    }
-  }
-
-  async function handleSave() {
-    if (!user?.uid) {
-      setError("You must be signed in to save a slip.");
-      return;
-    }
-    if (!slip) {
-      setError("No slip to save.");
-      return;
-    }
-
-    const stakeNumber = stake ? Number(stake) : 0;
-    if (!stakeNumber || stakeNumber <= 0) {
-      setError("Enter a valid stake amount.");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError(null);
-
-      await addDoc(collection(db, "slips"), {
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-        source: "betpawa_booking",
-        bookmaker: slip.bookmaker,
-        code: slip.code,
-        stake: stakeNumber,
-        totalOdds: slip.totalOdds,
-        selections: slip.selections,
-        status: "open",
-      });
-
-      setSaving(false);
-      // clear stake; keep the slip so user can still see it
-      setStake("");
-    } catch (err) {
-      console.error("[FORZA] Failed to save imported slip:", err);
-      setSaving(false);
-      setError("Failed to save slip. Try again.");
     }
   }
 
@@ -191,29 +145,24 @@ export default function BetpawaBookingImport() {
             ))}
           </div>
 
-          {/* Stake + save */}
-          <div className="rounded-xl bg-[#111111] border border-[#262626] p-3 space-y-2">
-            <div className="space-y-1">
-              <label className="text-[11px] text-[#9CA3AF]">
-                Stake (TZS)
-              </label>
-              <input
-                type="number"
-                value={stake}
-                onChange={(e) => setStake(e.target.value)}
-                placeholder="Enter stake"
-                className="w-full bg-[#0A0A0A] border border-[#262626] rounded-lg px-3 py-1.5 text-[12px] text-white"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full bg-[#FF1A3C] text-white text-[12px] font-semibold py-2 rounded-lg shadow-[0_0_15px_rgba(255,26,60,0.35)] disabled:opacity-60"
-            >
-              {saving ? "Saving…" : "Save slip to my account"}
-            </button>
-          </div>
+          {/* Unified actions */}
+          <SlipActions
+            bets={slip.selections.map((sel) => {
+              // Parse match string "Team A vs Team B" or similar
+              const parts = sel.match.split(/\s+vs\s+/i);
+              return {
+                homeTeam: parts[0]?.trim() || sel.match,
+                awayTeam: parts[1]?.trim() || "",
+                market: sel.marketGroup || "Unknown",
+                selection: sel.pick,
+                odds: sel.odds,
+              };
+            }) as SlipBet[]}
+            bookmaker="BetPawa Tanzania"
+            bookingCode={slip.code}
+            rawText={`Imported from BetPawa booking code ${slip.code}`}
+            source="import"
+          />
         </div>
       )}
     </section>
