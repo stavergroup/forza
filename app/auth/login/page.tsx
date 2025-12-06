@@ -49,7 +49,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Logo + title */}
         <div className="flex flex-col items-center gap-2">
-          <div className="h-11 w-11 rounded-2xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center text-[#A4FF2F] font-bold text-[14px]">
+          <div className="h-11 w-11 rounded-2xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center text-[var(--forza-accent)] font-bold text-[14px]">
             FZ
           </div>
           <div className="text-center space-y-1">
@@ -107,7 +107,7 @@ export default function LoginPage() {
             </label>
             <button
               type="button"
-              className="text-[#B5B5B5] hover:text-[#A4FF2F] transition"
+              className="text-[#B5B5B5] hover:text-[var(--forza-accent)] transition"
             >
               Forgot password?
             </button>
@@ -116,7 +116,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-1 rounded-xl bg-[#A4FF2F] text-black text-[13px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed transition"
+            className="w-full mt-1 rounded-xl bg-[var(--forza-accent)] text-black text-[13px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
             {loading ? "Logging in..." : "Continue"}
           </button>
@@ -143,7 +143,7 @@ export default function LoginPage() {
           Don't have an account?{" "}
           <a
             href="/auth/register"
-            className="text-[#A4FF2F] font-medium hover:underline"
+            className="text-[var(--forza-accent)] font-medium hover:underline"
           >
             Sign up
           </a>

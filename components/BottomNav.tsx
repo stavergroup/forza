@@ -43,17 +43,17 @@ export default function BottomNav() {
                 key={tab.href}
                 href={tab.href}
                 className={`flex-1 flex items-center justify-center py-1 transition-all duration-200 ${
-                  active ? "text-[#A4FF2F]" : "text-[#7A7A7A]"
+                  active ? "text-[var(--forza-accent)]" : "text-[#7A7A7A]"
                 }`}
               >
                 <div
                   className={`flex items-center justify-center h-9 w-9 rounded-full transition-all duration-200 ${
-                    active ? "bg-[#111111] shadow-[0_0_20px_rgba(164,255,47,0.25)]" : ""
+                    active ? "bg-[#111111] shadow-[0_0_20px_var(--forza-glow)]" : ""
                   }`}
                 >
                   <Icon
                     size={20}
-                    className={active ? "stroke-[#A4FF2F]" : "stroke-[#9A9A9A]"}
+                    className={active ? "stroke-[var(--forza-accent)]" : "stroke-[#9A9A9A]"}
                   />
                 </div>
               </Link>

@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 
 import BetpawaBookingImport from "@/components/BetpawaBookingImport";
+import SlipUpload from "@/components/SlipUpload";
 
 export default function BuildSlipPage() {
   return (
@@ -27,30 +28,7 @@ export default function BuildSlipPage() {
             <span className="text-[11px] text-[#888]">Image or text</span>
           </div>
 
-          {/* Upload area (mock) */}
-          <label className="block rounded-2xl border border-dashed border-[#2A2A2A] bg-[#0B0B0B] px-4 py-6 text-center cursor-pointer hover:border-[#A4FF2F] transition-colors">
-            <div className="text-[22px] mb-1">📷</div>
-            <p className="text-[12px] text-[#E5E5E5]">
-              Tap to upload slip screenshot
-            </p>
-            <p className="text-[10px] text-[#777] mt-1">
-              We’ll read teams, markets and odds for you.
-            </p>
-          </label>
-
-          {/* Or paste text */}
-          <div className="space-y-1.5">
-            <p className="text-[11px] text-[#B5B5B5]">Or paste slip text</p>
-            <textarea
-              className="w-full rounded-xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2 text-[12px] text-[#E5E5E5] placeholder:text-[#555] outline-none resize-none h-20"
-              placeholder="Example: PSG win @1.50, Arsenal vs Chelsea BTTS @1.95..."
-              readOnly
-            />
-          </div>
-
-          <button className="w-full rounded-xl bg-[#A4FF2F] text-black text-[12px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] transition">
-            Analyze slip (mock)
-          </button>
+          <SlipUpload />
         </section>
 
         <section className="mb-4">
@@ -63,7 +41,7 @@ export default function BuildSlipPage() {
             <p className="text-[12px] text-[#E5E5E5] font-medium">
               Ask AI to build a slip
             </p>
-            <span className="text-[11px] text-[#A4FF2F]">FORZA AI</span>
+            <span className="text-[11px] text-[var(--forza-accent)]">FORZA AI</span>
           </div>
 
           {/* Target total odds */}
@@ -91,7 +69,7 @@ export default function BuildSlipPage() {
               <button className="flex-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] py-1.5 text-[#B5B5B5]">
                 Safe
               </button>
-              <button className="flex-1 rounded-full bg-[#0B0B0B] border border-[#A4FF2F] py-1.5 text-[#A4FF2F]">
+              <button className="flex-1 rounded-full bg-[#0B0B0B] border border-[var(--forza-accent)] py-1.5 text-[var(--forza-accent)]">
                 Medium
               </button>
               <button className="flex-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] py-1.5 text-[#B5B5B5]">
@@ -106,7 +84,7 @@ export default function BuildSlipPage() {
               Focus leagues (optional)
             </label>
             <div className="flex flex-wrap gap-1.5 text-[11px]">
-              <button className="px-3 py-1 rounded-full bg-[#0B0B0B] border border-[#A4FF2F] text-[#A4FF2F]">
+              <button className="px-3 py-1 rounded-full bg-[#0B0B0B] border border-[var(--forza-accent)] text-[var(--forza-accent)]">
                 Premier League
               </button>
               <button className="px-3 py-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] text-[#B5B5B5]">
@@ -121,7 +99,7 @@ export default function BuildSlipPage() {
             </div>
           </div>
 
-          <button className="w-full rounded-2xl bg-[#A4FF2F] text-black text-[13px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] transition">
+          <button className="w-full rounded-2xl bg-[var(--forza-accent)] text-black text-[13px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] transition">
             Ask AI to generate slip (mock)
           </button>
         </section>

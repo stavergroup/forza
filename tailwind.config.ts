@@ -12,7 +12,7 @@ const config: Config = {
         forzaBg: "#0A0A0A",
         forzaCard: "#111111",
         forzaBorder: "#1F1F1F",
-        forzaLime: "#A4FF2F",
+        forzaLime: "var(--forza-accent)",
         forzaTextMuted: "#B5B5B5",
       },
     },

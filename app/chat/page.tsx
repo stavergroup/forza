@@ -82,7 +82,7 @@ export default function ChatPage() {
               Talk slips, matches and ideas with others.
             </p>
           </div>
-          <button className="text-[11px] px-3 py-1.5 rounded-full bg-[#111111] border border-[#1F1F1F] text-[#B5B5B5] hover:text-[#A4FF2F] hover:border-[#A4FF2F] transition">
+          <button className="text-[11px] px-3 py-1.5 rounded-full bg-[#111111] border border-[#1F1F1F] text-[#B5B5B5] hover:text-[var(--forza-accent)] hover:border-[var(--forza-accent)] transition">
             New room
           </button>
         </section>
@@ -105,7 +105,7 @@ export default function ChatPage() {
               className="rounded-2xl bg-[#111111] border border-[#1F1F1F] px-3 py-2.5 flex items-center gap-3 hover:bg-[#141414] transition-colors"
             >
               {/* Avatar circle */}
-              <div className="h-9 w-9 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[10px] text-[#A4FF2F] font-semibold">
+              <div className="h-9 w-9 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[10px] text-[var(--forza-accent)] font-semibold">
                 {room.name
                   .split(" ")
                   .map((w) => w[0])
@@ -132,12 +132,12 @@ export default function ChatPage() {
               {/* Right side badges */}
               <div className="flex flex-col items-end gap-1 text-[10px]">
                 {room.badge && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#0B0B0B] border border-[#A4FF2F] text-[#A4FF2F]">
+                  <span className="px-2 py-0.5 rounded-full bg-[#0B0B0B] border border-[var(--forza-accent)] text-[var(--forza-accent)]">
                     {room.badge}
                   </span>
                 )}
                 {room.unread && room.unread > 0 && (
-                  <span className="min-w-[18px] h-[18px] rounded-full bg-[#A4FF2F] text-black flex items-center justify-center text-[10px] font-semibold">
+                  <span className="min-w-[18px] h-[18px] rounded-full bg-[var(--forza-accent)] text-black flex items-center justify-center text-[10px] font-semibold">
                     {room.unread}
                   </span>
                 )}

@@ -30,7 +30,7 @@ export default function ProfilePage() {
         {/* Top profile card */}
         <section className="rounded-2xl bg-[#111111] border border-[#1F1F1F] p-4 space-y-3">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[13px] text-[#A4FF2F] font-semibold">
+            <div className="h-11 w-11 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[13px] text-[var(--forza-accent)] font-semibold">
               {displayName.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1">
@@ -40,7 +40,7 @@ export default function ProfilePage() {
               <p className="text-[11px] text-[#888]">{handle}</p>
               <p className="text-[10px] text-[#555] mt-0.5">{joined}</p>
             </div>
-            <button className="text-[11px] px-3 py-1.5 rounded-full bg-[#111111] border border-[#1F1F1F] text-[#B5B5B5] hover:text-[#A4FF2F] hover:border-[#A4FF2F] transition">
+            <button className="text-[11px] px-3 py-1.5 rounded-full bg-[#111111] border border-[#1F1F1F] text-[#B5B5B5] hover:text-[var(--forza-accent)] hover:border-[var(--forza-accent)] transition">
               Edit
             </button>
           </div>
@@ -85,7 +85,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="h-2 w-full bg-[#1F1F1F] rounded-full overflow-hidden">
-            <div className="h-full bg-[#A4FF2F]" style={{ width: "0%" }} />
+          <div className="h-full bg-[var(--forza-accent)]" style={{ width: "0%" }} />
           </div>
 
           <p className="text-[10px] text-[#777]">

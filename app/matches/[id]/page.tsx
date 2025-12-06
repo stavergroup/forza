@@ -212,7 +212,7 @@ export default function MatchDetailsPage({ params }: MatchDetailsPageProps) {
               {/* Score row */}
               <div className="flex items-center justify-between">
                 <div className="flex-1 flex flex-col items-center gap-1">
-                  <div className="h-10 w-10 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[11px] text-[#A4FF2F]">
+                  <div className="h-10 w-10 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[11px] text-[var(--forza-accent)]">
                     {match.homeTeam
                       .split(" ")
                       .map((w) => w[0])
@@ -247,7 +247,7 @@ export default function MatchDetailsPage({ params }: MatchDetailsPageProps) {
                   <p
                     className={
                       match.status === "LIVE"
-                        ? "text-[11px] text-[#A4FF2F]"
+                        ? "text-[11px] text-[var(--forza-accent)]"
                         : "text-[11px] text-[#888]"
                     }
                   >

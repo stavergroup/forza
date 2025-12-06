@@ -12,7 +12,7 @@ export default function Header() {
       {/* FORZA Logo */}
       <div
         onClick={() => router.push("/feed")}
-        className="h-9 w-9 rounded-xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center text-[#A4FF2F] font-bold text-[13px] cursor-pointer active:scale-95 transition"
+        className="h-9 w-9 rounded-xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center text-[var(--forza-accent)] font-bold text-[13px] cursor-pointer active:scale-95 transition"
       >
         FZ
       </div>

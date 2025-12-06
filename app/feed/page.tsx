@@ -44,7 +44,7 @@ export default function FeedPage() {
         {/* Composer */}
         <section className="rounded-2xl bg-[#111111] border border-[#1F1F1F] p-4 space-y-3 shadow-[0_18px_40px_rgba(0,0,0,0.55)] transition-transform duration-200 hover:-translate-y-[1px]">
           <div className="flex items-start gap-3">
-            <div className="h-9 w-9 rounded-full bg-[#1F1F1F] flex items-center justify-center text-[11px] text-[#A4FF2F] font-semibold">
+            <div className="h-9 w-9 rounded-full bg-[#1F1F1F] flex items-center justify-center text-[11px] text-[var(--forza-accent)] font-semibold">
               FZ
             </div>
             <div className="flex-1 space-y-2">
@@ -53,16 +53,16 @@ export default function FeedPage() {
               </div>
               <div className="flex items-center justify-between text-[11px] text-[#888]">
                 <div className="flex gap-4">
-                  <button className="flex items-center gap-1 hover:text-[#A4FF2F] transition-colors">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#A4FF2F]" />
+                  <button className="flex items-center gap-1 hover:text-[var(--forza-accent)] transition-colors">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--forza-accent)]" />
                     <span>Attach match</span>
                   </button>
-                  <button className="flex items-center gap-1 hover:text-[#A4FF2F] transition-colors">
+                  <button className="flex items-center gap-1 hover:text-[var(--forza-accent)] transition-colors">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#888]" />
                     <span>Attach slip</span>
                   </button>
                 </div>
-                <button className="px-4 py-1.5 rounded-full bg-[#A4FF2F] text-black text-[11px] font-semibold hover:brightness-95 active:scale-[0.97] transition-all">
+                <button className="px-4 py-1.5 rounded-full bg-[var(--forza-accent)] text-black text-[11px] font-semibold hover:brightness-95 active:scale-[0.97] transition-all">
                   Post
                 </button>
               </div>
@@ -74,14 +74,14 @@ export default function FeedPage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#B5B5B5]">Match highlights</span>
-            <span className="text-[#888] hover:text-[#A4FF2F] transition-colors">
+            <span className="text-[#888] hover:text-[var(--forza-accent)] transition-colors">
               View all
             </span>
           </div>
           <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
             {/* LIVE */}
             <div className="flex-shrink-0 w-20">
-              <div className="rounded-2xl border border-[#A4FF2F] bg-[#111111] px-2 py-3 flex flex-col items-center gap-1 transition-transform duration-200 hover:-translate-y-[2px]">
+              <div className="rounded-2xl border border-[var(--forza-accent)] bg-[#111111] px-2 py-3 flex flex-col items-center gap-1 transition-transform duration-200 hover:-translate-y-[2px]">
                 <div className="h-7 w-7 rounded-full bg-[#1F1F1F] flex items-center justify-center text-[10px]">
                   LIVE
                 </div>
@@ -93,7 +93,7 @@ export default function FeedPage() {
             {/* AI Pick */}
             <div className="flex-shrink-0 w-24">
               <div className="rounded-2xl border border-[#1F1F1F] bg-[#111111] px-2 py-3 flex flex-col items-center gap-1 transition-transform duration-200 hover:-translate-y-[2px]">
-                <div className="h-7 w-7 rounded-full bg-[#0B0B0B] flex items-center justify-center text-[10px] text-[#A4FF2F]">
+                <div className="h-7 w-7 rounded-full bg-[#0B0B0B] flex items-center justify-center text-[10px] text-[var(--forza-accent)]">
                   AI
                 </div>
                 <p className="text-[10px] text-center text-[#B5B5B5]">
@@ -147,7 +147,7 @@ export default function FeedPage() {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-7 w-7 rounded-full bg-[#1F1F1F] flex items-center justify-center text-[10px] text-[#A4FF2F]">
+                  <div className="h-7 w-7 rounded-full bg-[#1F1F1F] flex items-center justify-center text-[10px] text-[var(--forza-accent)]">
                     {post.user[0].toUpperCase()}
                   </div>
                   <div className="leading-tight">
@@ -166,17 +166,17 @@ export default function FeedPage() {
               {/* Match tag */}
               {post.matchTag && (
                 <div className="inline-flex items-center gap-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] px-2.5 py-1 text-[10px] text-[#B5B5B5]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#A4FF2F]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--forza-accent)]" />
                   <span>{post.matchTag}</span>
                 </div>
               )}
 
               {/* Slip preview */}
               {post.hasSlip && (
-                <div className="mt-1.5 rounded-xl border border-[#A4FF2F33] bg-[#0B0B0B] p-3 space-y-1.5">
+                <div className="mt-1.5 rounded-xl border border-[var(--forza-accent)]/20 bg-[#0B0B0B] p-3 space-y-1.5">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-[#B5B5B5]">Slip preview</span>
-                    <span className="text-[#A4FF2F] font-medium">
+                    <span className="text-[var(--forza-accent)] font-medium">
                       3-pick · 5.21x
                     </span>
                   </div>
@@ -186,10 +186,10 @@ export default function FeedPage() {
                     <li>• Inter vs Milan — Inter draw no bet</li>
                   </ul>
                   <div className="mt-2 flex gap-2 text-[11px]">
-                    <button className="flex-1 rounded-lg border border-[#A4FF2F55] text-[#A4FF2F] py-1 hover:bg-[#111111] transition-colors">
+                    <button className="flex-1 rounded-lg border border-[var(--forza-accent)]/33 text-[var(--forza-accent)] py-1 hover:bg-[#111111] transition-colors">
                       Save slip
                     </button>
-                    <button className="flex-1 rounded-lg bg-[#A4FF2F] text-black font-semibold py-1 hover:brightness-95 active:scale-[0.97] transition-all">
+                    <button className="flex-1 rounded-lg bg-[var(--forza-accent)] text-black font-semibold py-1 hover:brightness-95 active:scale-[0.97] transition-all">
                       Build slip
                     </button>
                   </div>
@@ -198,19 +198,19 @@ export default function FeedPage() {
 
               {/* Actions */}
               <div className="flex items-center justify-between pt-1 text-[11px] text-[#888]">
-                <button className="flex items-center gap-1 hover:text-[#A4FF2F] transition-colors">
+                <button className="flex items-center gap-1 hover:text-[var(--forza-accent)] transition-colors">
                   <span>♡</span>
                   <span>Like</span>
                 </button>
-                <button className="flex items-center gap-1 hover:text-[#A4FF2F] transition-colors">
+                <button className="flex items-center gap-1 hover:text-[var(--forza-accent)] transition-colors">
                   <span>💬</span>
                   <span>Comment</span>
                 </button>
-                <button className="flex items-center gap-1 hover:text-[#A4FF2F] transition-colors">
+                <button className="flex items-center gap-1 hover:text-[var(--forza-accent)] transition-colors">
                   <span>↗</span>
                   <span>Share</span>
                 </button>
-                <button className="flex items-center gap-1 hover:text-[#A4FF2F] transition-colors">
+                <button className="flex items-center gap-1 hover:text-[var(--forza-accent)] transition-colors">
                   <span>⭐</span>
                   <span>Save</span>
                 </button>

@@ -65,7 +65,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Logo + title */}
         <div className="flex flex-col items-center gap-2">
-          <div className="h-11 w-11 rounded-2xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center text-[#A4FF2F] font-bold text-[14px]">
+          <div className="h-11 w-11 rounded-2xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center text-[var(--forza-accent)] font-bold text-[14px]">
             FZ
           </div>
           <div className="text-center space-y-1">
@@ -142,7 +142,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-1 rounded-xl bg-[#A4FF2F] text-black text-[13px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed transition"
+            className="w-full mt-1 rounded-xl bg-[var(--forza-accent)] text-black text-[13px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
             {loading ? "Creating account..." : "Create account"}
           </button>
@@ -169,7 +169,7 @@ export default function RegisterPage() {
           Already have an account?{" "}
           <a
             href="/auth/login"
-            className="text-[#A4FF2F] font-medium hover:underline"
+            className="text-[var(--forza-accent)] font-medium hover:underline"
           >
             Log in
           </a>

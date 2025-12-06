@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+:root {
+  --forza-accent: #A4FF2F;
+  --forza-glow: rgba(164, 255, 47, 0.45);
+}
+
 html,
 body {
   padding: 0;

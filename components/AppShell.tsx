@@ -21,7 +21,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <a
           href="/"
           className={`flex flex-col items-center text-[11px] ${
-            pathname === "/" ? "text-[#A4FF2F]" : "text-[#888]"
+            pathname === "/" ? "text-[var(--forza-accent)]" : "text-[#888]"
           }`}
         >
           <span className="text-[18px]">🏠</span>
@@ -32,7 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           href="/matches"
           className={`flex flex-col items-center text-[11px] ${
             pathname.startsWith("/matches")
-              ? "text-[#A4FF2F]"
+              ? "text-[var(--forza-accent)]"
               : "text-[#888]"
           }`}
         >
@@ -44,7 +44,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           href="/build-slip"
           className={`flex flex-col items-center text-[11px] ${
             pathname.startsWith("/build-slip")
-              ? "text-[#A4FF2F]"
+              ? "text-[var(--forza-accent)]"
               : "text-[#888]"
           }`}
         >
@@ -56,7 +56,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           href="/chat"
           className={`flex flex-col items-center text-[11px] ${
             pathname.startsWith("/chat")
-              ? "text-[#A4FF2F]"
+              ? "text-[var(--forza-accent)]"
               : "text-[#888]"
           }`}
         >
@@ -68,7 +68,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           href="/profile"
           className={`flex flex-col items-center text-[11px] ${
             pathname.startsWith("/profile")
-              ? "text-[#A4FF2F]"
+              ? "text-[var(--forza-accent)]"
               : "text-[#888]"
           }`}
         >

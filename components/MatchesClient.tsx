@@ -149,7 +149,7 @@ export default function MatchesClient({
           className="flex items-center gap-1 rounded-full bg-[#111111] border border-[#1F1F1F] px-3 py-1.5"
           onClick={handleLeagueCycle}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#A4FF2F]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--forza-accent)]" />
           <span className="text-[#B5B5B5] truncate max-w-[130px]">
             {selectedLeagueLabel}
           </span>
@@ -190,7 +190,7 @@ export default function MatchesClient({
                   {m.homeTeam} {m.homeScore ?? "-"} - {m.awayScore ?? "-"}{" "}
                   {m.awayTeam}
                 </p>
-                <p className="text-[10px] text-[#A4FF2F] mt-0.5">
+                <p className="text-[10px] text-[var(--forza-accent)] mt-0.5">
                   {m.minuteOrTime}
                 </p>
               </div>
@@ -218,7 +218,7 @@ export default function MatchesClient({
               <div className="w-11 text-[11px]">
                 <span
                   className={
-                    m.status === "LIVE" ? "text-[#A4FF2F]" : "text-[#B5B5B5]"
+                    m.status === "LIVE" ? "text-[var(--forza-accent)]" : "text-[#B5B5B5]"
                   }
                 >
                   {m.minuteOrTime}
@@ -231,7 +231,7 @@ export default function MatchesClient({
                 {/* Home row */}
                 <div className="flex items-center justify-between text-[12px]">
                   <div className="flex items-center gap-2 flex-1">
-                    <div className="h-6 w-6 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[9px] text-[#A4FF2F]">
+                    <div className="h-6 w-6 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[9px] text-[var(--forza-accent)]">
                       {m.homeAbbr}
                     </div>
                     <span className="text-[#E5E5E5] truncate">
@@ -271,7 +271,7 @@ export default function MatchesClient({
                   size={16}
                   className={
                     m.followed
-                      ? "fill-[#A4FF2F] stroke-[#A4FF2F]"
+                      ? "fill-[var(--forza-accent)] stroke-[var(--forza-accent)]"
                       : "stroke-[#B5B5B5]"
                   }
                 />
