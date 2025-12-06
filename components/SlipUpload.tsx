@@ -11,6 +11,7 @@ type ParsedBet = {
 };
 
 type ParsedSlip = {
+  isBetSlip?: boolean;
   bookmaker?: string | null;
   bookingCode?: string | null;
   bets?: ParsedBet[];
@@ -19,7 +20,6 @@ type ParsedSlip = {
 
 export default function SlipUpload() {
   const [fileName, setFileName] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<ParsedSlip | null>(null);
@@ -28,11 +28,11 @@ export default function SlipUpload() {
     const file = e.target.files?.[0];
     if (!file) {
       setFileName(null);
-      setPreviewUrl(null);
+      setResult(null);
+      setErrorMsg(null);
       return;
     }
     setFileName(file.name);
-    setPreviewUrl(URL.createObjectURL(file));
     setResult(null);
     setErrorMsg(null);
   }
@@ -68,6 +68,10 @@ export default function SlipUpload() {
 
       const data: ParsedSlip = await res.json();
       setResult(data);
+
+      if (data.isBetSlip === false) {
+        setErrorMsg("This is not a screenshot of a football betslip.");
+      }
     } catch (err: any) {
       console.error("[FORZA] slip upload error:", err);
       setErrorMsg(err.message || "Something went wrong.");
@@ -75,6 +79,9 @@ export default function SlipUpload() {
       setLoading(false);
     }
   }
+
+  const bets = result?.bets ?? [];
+  const isBetSlip = result?.isBetSlip ?? (bets.length > 0);
 
   return (
     <div className="space-y-3">
@@ -97,7 +104,7 @@ export default function SlipUpload() {
                 Tap to upload slip screenshot
               </p>
               <p className="text-[11px] text-[#7A7A7A]">
-                Clear screenshot from BetPawa, SportPesa, etc.
+                Use a clear screenshot of a football betslip.
               </p>
             </div>
             {fileName && (
@@ -121,27 +128,13 @@ export default function SlipUpload() {
         <p className="text-[11px] text-[#FF6B81]">{errorMsg}</p>
       )}
 
-      {previewUrl && (
-        <div className="mt-2">
-          <p className="text-[11px] text-[#A8A8A8] mb-1">
-            Preview
-          </p>
-          <div className="overflow-hidden rounded-xl border border-[#2A2A2A]">
-            <img
-              src={previewUrl}
-              alt="Slip preview"
-              className="w-full object-contain"
-            />
-          </div>
-        </div>
-      )}
-
-      {result?.bets && result.bets.length > 0 && (
+      {/* Only show detected bets if it is a betslip */}
+      {isBetSlip && bets.length > 0 && (
         <div className="mt-3 space-y-2">
           <p className="text-[12px] font-medium text-white">
             Detected bets
           </p>
-          {result.bets.map((bet, index) => (
+          {bets.map((bet, index) => (
             <div
               key={index}
               className="rounded-xl bg-[#111111] border border-[#2A2A2A] px-3 py-2 text-[11px]"
@@ -163,15 +156,6 @@ export default function SlipUpload() {
             </div>
           ))}
         </div>
-      )}
-
-      {result?.rawText && (
-        <details className="mt-2 text-[10px] text-[#777]">
-          <summary>Raw text (debug)</summary>
-          <pre className="mt-1 whitespace-pre-wrap">
-            {result.rawText}
-          </pre>
-        </details>
       )}
     </div>
   );

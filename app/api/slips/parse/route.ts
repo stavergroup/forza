@@ -20,10 +20,13 @@ export async function POST(req: NextRequest) {
     const dataUrl = `data:${file.type};base64,${base64}`;
 
     const prompt = `
-You are reading a FOOTBALL betting slip image (e.g. BetPawa, SportPesa, Betika).
+You are reading an image that MAY or MAY NOT be a FOOTBALL betting slip (e.g. BetPawa, SportPesa, Betika).
 
-Your job:
+Your first job:
+- Decide if this image is a FOOTBALL betting slip.
+- If it is not a betslip (for example it is a chat, screenshot of something else, picture of a person, etc.), set "isBetSlip" to false and do NOT try to guess bets.
 
+If it IS a football betting slip:
 1. Read ALL football bets from the slip.
 2. For each bet, extract:
    - homeTeam: string
@@ -36,9 +39,10 @@ Your job:
    - bookingCode: string | null (any code or reference)
 4. Provide a rawText field with your full interpretation of the slip for debug.
 
-Respond ONLY with valid JSON in this shape:
+ALWAYS respond with valid JSON in this exact shape:
 
 {
+  "isBetSlip": boolean,
   "bookmaker": string | null,
   "bookingCode": string | null,
   "bets": [
@@ -52,6 +56,10 @@ Respond ONLY with valid JSON in this shape:
   ],
   "rawText": string
 }
+
+Rules:
+- If not a betslip, set isBetSlip to false, bookmaker and bookingCode to null, bets to an empty array, and rawText to a short explanation of what you see.
+- If it is a betslip but you cannot read some parts, still return isBetSlip = true and do your best with bets.
     `.trim();
 
     const completion = await openai.chat.completions.create({
@@ -89,7 +97,10 @@ Respond ONLY with valid JSON in this shape:
       );
     }
 
-    // Basic normalization
+    // Safety / normalization
+    if (typeof parsed.isBetSlip !== "boolean") {
+      parsed.isBetSlip = Array.isArray(parsed.bets) && parsed.bets.length > 0;
+    }
     if (!Array.isArray(parsed.bets)) {
       parsed.bets = [];
     }
