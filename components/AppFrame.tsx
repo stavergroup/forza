@@ -38,7 +38,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex justify-center bg-[#0A0A0A] text-white">
       <div className="relative w-full max-w-md border-x border-[#1F1F1F] bg-[#050505]">
-        <main className={isAuthRoute ? "min-h-screen" : "min-h-screen pb-16"}>
+        <main className={isAuthRoute ? "min-h-screen" : "min-h-screen pb-24"}>
           {children}
         </main>
         {/* Hide bottom nav on auth routes */}
