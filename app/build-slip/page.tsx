@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 
 import BetpawaBookingImport from "@/components/BetpawaBookingImport";
 import SlipUpload from "@/components/SlipUpload";
+import AiSlipBuilder from "@/components/AiSlipBuilder";
 
 export default function BuildSlipPage() {
   return (
@@ -36,88 +37,8 @@ export default function BuildSlipPage() {
         </section>
 
         {/* AI generate slip section */}
-        <section className="rounded-2xl bg-[#111111] border border-[#1F1F1F] p-3.5 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[12px] text-[#E5E5E5] font-medium">
-              Ask AI to build a slip
-            </p>
-            <span className="text-[11px] text-[var(--forza-accent)]">FORZA AI</span>
-          </div>
-
-          {/* Target total odds */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] text-[#B5B5B5]">
-              Target total odds
-            </label>
-            <div className="flex items-center rounded-xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2">
-              <input
-                type="text"
-                className="flex-1 bg-transparent outline-none text-[13px] text-[#E5E5E5] placeholder:text-[#555]"
-                placeholder="Example: 3.0 · 5.5 · 10 · 20 (mock)"
-                readOnly
-              />
-            </div>
-            <p className="text-[10px] text-[#777]">
-              Tell FORZA AI how many total odds you want it to target.
-            </p>
-          </div>
-
-          {/* Risk level */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] text-[#B5B5B5]">Risk level</label>
-            <div className="flex gap-2 text-[11px]">
-              <button className="flex-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] py-1.5 text-[#B5B5B5]">
-                Safe
-              </button>
-              <button className="flex-1 rounded-full bg-[#0B0B0B] border border-[var(--forza-accent)] py-1.5 text-[var(--forza-accent)]">
-                Medium
-              </button>
-              <button className="flex-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] py-1.5 text-[#B5B5B5]">
-                High
-              </button>
-            </div>
-          </div>
-
-          {/* Leagues */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] text-[#B5B5B5]">
-              Focus leagues (optional)
-            </label>
-            <div className="flex flex-wrap gap-1.5 text-[11px]">
-              <button className="px-3 py-1 rounded-full bg-[#0B0B0B] border border-[var(--forza-accent)] text-[var(--forza-accent)]">
-                Premier League
-              </button>
-              <button className="px-3 py-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] text-[#B5B5B5]">
-                La Liga
-              </button>
-              <button className="px-3 py-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] text-[#B5B5B5]">
-                Serie A
-              </button>
-              <button className="px-3 py-1 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] text-[#B5B5B5]">
-                Champions League
-              </button>
-            </div>
-          </div>
-
-          <button className="w-full rounded-2xl bg-[var(--forza-accent)] text-black text-[13px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] transition">
-            Ask AI to generate slip (mock)
-          </button>
-        </section>
-
-        {/* Previous AI slips (mock history) */}
-        <section className="pb-4 space-y-2">
-          <p className="text-[11px] text-[#B5B5B5]">Recent AI slips (mock)</p>
-          <div className="rounded-2xl bg-[#111111] border border-[#1F1F1F] p-3 space-y-1.5 text-[11px]">
-            <div className="flex items-center justify-between">
-              <span className="text-[#E5E5E5]">3-pick combo · 4.10x</span>
-              <span className="text-[#777]">Yesterday</span>
-            </div>
-            <ul className="text-[#CCCCCC] space-y-0.5">
-              <li>• PSG win & Over 1.5</li>
-              <li>• Both teams to score (London derby)</li>
-              <li>• Inter draw no bet</li>
-            </ul>
-          </div>
+        <section className="rounded-2xl bg-[#111111] border border-[#1F1F1F] p-3.5">
+          <AiSlipBuilder />
         </section>
       </div>
     </>
