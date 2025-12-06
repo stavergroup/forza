@@ -24,6 +24,8 @@ type ParsedSlip = {
   rawText?: string;
 };
 
+type SaveMode = "save" | "track" | "post";
+
 export default function SlipUpload() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -86,7 +88,7 @@ export default function SlipUpload() {
     void analyzeFile(file);
   }
 
-  async function handleSaveSlip() {
+  async function handleSave(mode: SaveMode) {
     if (!result) return;
 
     const bets = result.bets ?? [];
@@ -99,7 +101,7 @@ export default function SlipUpload() {
 
     const user = auth.currentUser;
     if (!user) {
-      setErrorMsg("You must be signed in to save a slip.");
+      setErrorMsg("You must be signed in to save or post a slip.");
       return;
     }
 
@@ -108,7 +110,8 @@ export default function SlipUpload() {
       setSaveMessage(null);
       setErrorMsg(null);
 
-      await addDoc(collection(db, "slips"), {
+      // Save slip first
+      const slipRef = await addDoc(collection(db, "slips"), {
         userId: user.uid,
         bookmaker: result.bookmaker ?? null,
         bookingCode: result.bookingCode ?? null,
@@ -121,13 +124,30 @@ export default function SlipUpload() {
         })),
         source: "image",
         rawText: result.rawText ?? "",
+        tracking: mode === "track" || mode === "post",
         createdAt: serverTimestamp(),
       });
 
-      setSaveMessage("Slip saved. You can follow it from your slips/profile.");
+      // If user chose "post" also create a feed post
+      if (mode === "post") {
+        await addDoc(collection(db, "posts"), {
+          userId: user.uid,
+          slipId: slipRef.id,
+          type: "slip",
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      if (mode === "save") {
+        setSaveMessage("Slip saved.");
+      } else if (mode === "track") {
+        setSaveMessage("Slip saved and marked for tracking.");
+      } else if (mode === "post") {
+        setSaveMessage("Slip saved and posted to your feed.");
+      }
     } catch (err: any) {
-      console.error("[FORZA] save slip error:", err);
-      setErrorMsg("Failed to save slip. Try again.");
+      console.error("[FORZA] save/post slip error:", err);
+      setErrorMsg("Failed to save/post slip. Try again.");
     } finally {
       setSaving(false);
     }
@@ -176,7 +196,7 @@ export default function SlipUpload() {
         <p className="text-[11px] text-[#FF6B81]">{errorMsg}</p>
       )}
 
-      {/* Detected bets */}
+      {/* Detected bets + actions */}
       {isBetSlip && bets.length > 0 && (
         <div className="mt-3 space-y-3">
           <div className="space-y-2">
@@ -206,15 +226,36 @@ export default function SlipUpload() {
             ))}
           </div>
 
-          {/* Save slip button */}
-          <button
-            type="button"
-            onClick={handleSaveSlip}
-            disabled={saving}
-            className="w-full rounded-full bg-[var(--forza-accent)] text-black font-semibold py-2.5 text-[13px] shadow-[0_0_18px_var(--forza-glow)] disabled:opacity-60"
-          >
-            {saving ? "Saving slip…" : "Save slip & track"}
-          </button>
+          {/* Action buttons: Post, Save, Track */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => handleSave("post")}
+              disabled={saving}
+              className="w-full rounded-full bg-[var(--forza-accent)] text-black font-semibold py-2.5 text-[13px] shadow-[0_0_18px_var(--forza-glow)] disabled:opacity-60"
+            >
+              {saving ? "Working…" : "Post"}
+            </button>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleSave("save")}
+                disabled={saving}
+                className="flex-1 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] text-[12px] text-white py-2 disabled:opacity-60"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave("track")}
+                disabled={saving}
+                className="flex-1 rounded-full bg-[#1A1A1A] border border-[var(--forza-accent)] text-[12px] text-[var(--forza-accent)] py-2 disabled:opacity-60"
+              >
+                Track
+              </button>
+            </div>
+          </div>
 
           {saveMessage && (
             <p className="text-[11px] text-[#A8A8A8]">
