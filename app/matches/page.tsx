@@ -38,7 +38,7 @@ type ApiFixture = {
 };
 
 async function fetchMatches(date: string): Promise<{ matches: UiMatch[]; error?: string }> {
-  const apiKey = process.env.API_FOOTBALL_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_API_FOOTBALL_KEY;
   const baseUrl =
     process.env.API_FOOTBALL_BASE_URL || "https://v3.football.api-sports.io";
 
