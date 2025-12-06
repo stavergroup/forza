@@ -23,7 +23,10 @@ export type SlipActionsProps = {
   bookmaker?: string | null;
   bookingCode?: string | null;
   rawText?: string;
-  source: "image" | "ai";
+  // image  = screenshot upload
+  // import = BetPawa booking code
+  // ai     = Ask AI to build slip
+  source: "image" | "import" | "ai";
 };
 
 export default function SlipActions({
@@ -65,7 +68,7 @@ export default function SlipActions({
           selection: b.selection,
           odds: b.odds ?? null,
         })),
-        source, // "image" or "ai"
+        source,
         rawText,
         tracking: mode === "track" || mode === "post",
         createdAt: serverTimestamp(),
