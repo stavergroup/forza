@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 
 type ParsedBet = {
   homeTeam: string;
@@ -24,38 +24,15 @@ export default function SlipUpload() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<ParsedSlip | null>(null);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setFileName(null);
-      setResult(null);
-      setErrorMsg(null);
-      return;
-    }
-    setFileName(file.name);
-    setResult(null);
-    setErrorMsg(null);
-  }
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setErrorMsg(null);
-    setResult(null);
-
-    const input = e.currentTarget.elements.namedItem(
-      "file"
-    ) as HTMLInputElement | null;
-
-    if (!input || !input.files || input.files.length === 0) {
-      setErrorMsg("Please choose a slip screenshot first.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", input.files[0]);
-
+  async function analyzeFile(file: File) {
     setLoading(true);
+    setErrorMsg(null);
+    setResult(null);
+
     try {
+      const formData = new FormData();
+      formData.append("file", file);
+
       const res = await fetch("/api/slips/parse", {
         method: "POST",
         body: formData,
@@ -80,55 +57,67 @@ export default function SlipUpload() {
     }
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setFileName(null);
+      setResult(null);
+      setErrorMsg(null);
+      return;
+    }
+
+    setFileName(file.name);
+    setResult(null);
+    setErrorMsg(null);
+
+    // Auto-analyze as soon as user picks the file
+    void analyzeFile(file);
+  }
+
   const bets = result?.bets ?? [];
   const isBetSlip = result?.isBetSlip ?? (bets.length > 0);
 
   return (
     <div className="space-y-3">
-      <form onSubmit={handleSubmit} className="space-y-3">
-        {/* Upload area */}
-        <label className="block w-full rounded-2xl border border-dashed border-[#3A3A3A] bg-[#111111] px-4 py-5 text-center text-xs text-[#A8A8A8] active:border-[var(--forza-accent)]">
-          <input
-            type="file"
-            name="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-9 w-9 rounded-full bg-[#1C1C1C] flex items-center justify-center text-lg">
-              📷
-            </div>
-            <div>
-              <p className="text-[12px] text-white">
-                Tap to upload slip screenshot
-              </p>
-              <p className="text-[11px] text-[#7A7A7A]">
-                Use a clear screenshot of a football betslip.
-              </p>
-            </div>
-            {fileName && (
-              <p className="text-[10px] text-[#9F9F9F] mt-1">
-                Selected: {fileName}
-              </p>
-            )}
+      {/* Upload area */}
+      <label className="block w-full rounded-2xl border border-dashed border-[#3A3A3A] bg-[#111111] px-4 py-5 text-center text-xs text-[#A8A8A8] active:border-[var(--forza-accent)]">
+        <input
+          type="file"
+          name="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-9 w-9 rounded-full bg-[#1C1C1C] flex items-center justify-center text-lg">
+            📷
           </div>
-        </label>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-full bg-[var(--forza-accent)] text-black font-semibold py-2.5 text-[13px] shadow-[0_0_18px_var(--forza-glow)] disabled:opacity-60"
-        >
-          {loading ? "Reading slip…" : "Analyze slip with FORZA AI"}
-        </button>
-      </form>
+          <div>
+            <p className="text-[12px] text-white">
+              Tap to upload slip screenshot
+            </p>
+            <p className="text-[11px] text-[#7A7A7A]">
+              FORZA will auto-analyze a football betslip.
+            </p>
+          </div>
+          {fileName && (
+            <p className="text-[10px] text-[#9F9F9F] mt-1">
+              Selected: {fileName}
+            </p>
+          )}
+          {loading && (
+            <p className="text-[10px] text-[var(--forza-accent)] mt-1">
+              Reading slip…
+            </p>
+          )}
+        </div>
+      </label>
 
       {errorMsg && (
         <p className="text-[11px] text-[#FF6B81]">{errorMsg}</p>
       )}
 
-      {/* Only show detected bets if it is a betslip */}
+      {/* Only show detected bets if it's a betslip */}
       {isBetSlip && bets.length > 0 && (
         <div className="mt-3 space-y-2">
           <p className="text-[12px] font-medium text-white">
