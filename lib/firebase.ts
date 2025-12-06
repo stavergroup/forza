@@ -1,3 +1,6 @@
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+
 let auth: any;
 let googleProvider: any;
 
@@ -20,8 +23,6 @@ if (typeof window === 'undefined') {
     googleProvider = null;
   } else {
     try {
-      const { initializeApp, getApps, getApp } = require("firebase/app");
-      const { getAuth, GoogleAuthProvider } = require("firebase/auth");
       const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
       auth = getAuth(app);
       googleProvider = new GoogleAuthProvider();
