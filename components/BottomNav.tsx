@@ -29,8 +29,8 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-20">
-      <div className="mx-auto bg-[#050505]/98 border-t border-[#1F1F1F] backdrop-blur-sm">
+    <nav className="fixed bottom-0 inset-x-0 z-50 bg-[#050505] border-t border-[#1F1F1F]">
+      <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between px-4 py-2">
           {tabs.map((tab) => {
             const active =
