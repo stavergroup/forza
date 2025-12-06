@@ -1,61 +1,55 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
-import {
-  Rss,
-  Target,
-  ListChecks,
-  MessageCircle,
-  User,
-} from "lucide-react";
+import { usePathname } from "next/navigation";
 
-type Tab = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-};
-
-const tabs: Tab[] = [
-  { href: "/feed", label: "Feed", icon: Rss },
-  { href: "/matches", label: "Matches", icon: Target },
-  { href: "/build-slip", label: "Build Slip", icon: ListChecks },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
-  { href: "/profile", label: "Profile", icon: User },
+const tabs = [
+  { href: "/", label: "Home", icon: "🏠" },
+  { href: "/matches", label: "Matches", icon: "⚽" },
+  { href: "/communities", label: "Community", icon: "👥" },
+  { href: "/profile", label: "Profile", icon: "👤" },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 bg-[#050505] border-t border-[#1F1F1F]">
-      <div className="max-w-md mx-auto">
-        <div className="flex items-center justify-between px-4 py-2">
+    <nav className="
+      fixed left-0 right-0 bottom-0 z-40 
+      bg-[#050505] 
+      border-t border-[#1F1F1F] 
+      m-0 p-0
+    ">
+      <div className="w-full max-w-md mx-auto">
+        <div className="flex items-center justify-around py-2">
           {tabs.map((tab) => {
             const active =
-              pathname === tab.href ||
-              (tab.href !== "/feed" && pathname.startsWith(tab.href));
-            const Icon = tab.icon;
+              tab.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(tab.href);
 
             return (
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex-1 flex items-center justify-center py-1 transition-all duration-200 ${
-                  active ? "text-[#A4FF2F]" : "text-[#7A7A7A]"
-                }`}
+                className="flex flex-col items-center justify-center gap-0.5 text-[11px]"
               >
                 <div
-                  className={`flex items-center justify-center h-9 w-9 rounded-full transition-all duration-200 ${
-                    active ? "bg-[#111111] shadow-[0_0_20px_rgba(164,255,47,0.25)]" : ""
+                  className={`flex items-center justify-center h-7 w-7 rounded-full ${
+                    active
+                      ? "bg-[#00FF47] text-black shadow-[0_0_12px_rgba(0,255,71,0.55)]"
+                      : "bg-transparent text-[#A0A0A0]"
                   }`}
                 >
-                  <Icon
-                    size={20}
-                    className={active ? "stroke-[#A4FF2F]" : "stroke-[#9A9A9A]"}
-                  />
+                  <span className="text-[15px]">{tab.icon}</span>
                 </div>
+                <span
+                  className={`${
+                    active ? "text-[#00FF47]" : "text-[#868686]"
+                  }`}
+                >
+                  {tab.label}
+                </span>
               </Link>
             );
           })}
