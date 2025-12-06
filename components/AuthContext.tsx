@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [logout, setLogout] = useState<() => Promise<void>>(async () => {});
 
   useEffect(() => {
-    import("@/lib/firebase").then(({ auth }) => {
+    import("@/lib/firebaseClient").then(({ auth }) => {
       if (auth) {
         import("firebase/auth").then(({ onAuthStateChanged, signOut }) => {
           const unsub = onAuthStateChanged(auth, (firebaseUser: any) => {

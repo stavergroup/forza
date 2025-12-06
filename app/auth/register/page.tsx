@@ -7,7 +7,7 @@ import {
   updateProfile,
   signInWithPopup,
 } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider } from "@/lib/firebaseClient";
 
 export default function RegisterPage() {
   const router = useRouter();
