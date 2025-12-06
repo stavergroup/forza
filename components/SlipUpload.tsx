@@ -1,30 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { auth, db } from "@/lib/firebaseClient";
-import {
-  addDoc,
-  collection,
-  serverTimestamp,
-} from "firebase/firestore";
-
-type ParsedBet = {
-  homeTeam: string;
-  awayTeam: string;
-  market: string;
-  selection: string;
-  odds: number | null;
-};
+import SlipActions, { SlipBet } from "@/components/SlipActions";
 
 type ParsedSlip = {
   isBetSlip?: boolean;
   bookmaker?: string | null;
   bookingCode?: string | null;
-  bets?: ParsedBet[];
+  bets?: SlipBet[];
   rawText?: string;
 };
-
-type SaveMode = "save" | "track" | "post";
 
 export default function SlipUpload() {
   const [fileName, setFileName] = useState<string | null>(null);
@@ -32,14 +17,10 @@ export default function SlipUpload() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<ParsedSlip | null>(null);
 
-  const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-
   async function analyzeFile(file: File) {
     setLoading(true);
     setErrorMsg(null);
     setResult(null);
-    setSaveMessage(null);
 
     try {
       const formData = new FormData();
@@ -75,82 +56,15 @@ export default function SlipUpload() {
       setFileName(null);
       setResult(null);
       setErrorMsg(null);
-      setSaveMessage(null);
       return;
     }
 
     setFileName(file.name);
     setResult(null);
     setErrorMsg(null);
-    setSaveMessage(null);
 
-    // Auto-analyze as soon as user picks the file
+    // Auto-analyze
     void analyzeFile(file);
-  }
-
-  async function handleSave(mode: SaveMode) {
-    if (!result) return;
-
-    const bets = result.bets ?? [];
-    const isBetSlip = result.isBetSlip ?? (bets.length > 0);
-
-    if (!isBetSlip || bets.length === 0) {
-      setErrorMsg("No valid bets found to save.");
-      return;
-    }
-
-    const user = auth.currentUser;
-    if (!user) {
-      setErrorMsg("You must be signed in to save or post a slip.");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setSaveMessage(null);
-      setErrorMsg(null);
-
-      // Save slip first
-      const slipRef = await addDoc(collection(db, "slips"), {
-        userId: user.uid,
-        bookmaker: result.bookmaker ?? null,
-        bookingCode: result.bookingCode ?? null,
-        bets: bets.map((b) => ({
-          homeTeam: b.homeTeam,
-          awayTeam: b.awayTeam,
-          market: b.market,
-          selection: b.selection,
-          odds: b.odds ?? null,
-        })),
-        source: "image",
-        rawText: result.rawText ?? "",
-        tracking: mode === "track" || mode === "post",
-        createdAt: serverTimestamp(),
-      });
-
-      // If user chose "post" also create a feed post
-      if (mode === "post") {
-        await addDoc(collection(db, "posts"), {
-          userId: user.uid,
-          slipId: slipRef.id,
-          type: "slip",
-          createdAt: serverTimestamp(),
-        });
-      }
-
-      if (mode === "save") {
-        setSaveMessage("Slip saved.");
-      } else if (mode === "track") {
-        setSaveMessage("Slip saved and marked for tracking.");
-      } else if (mode === "post") {
-        setSaveMessage("Slip saved and posted to your feed.");
-      }
-    } catch (err: any) {
-      console.error("[FORZA] save/post slip error:", err);
-      setErrorMsg("Failed to save/post slip. Try again.");
-    } finally {
-      setSaving(false);
-    }
   }
 
   const bets = result?.bets ?? [];
@@ -196,7 +110,7 @@ export default function SlipUpload() {
         <p className="text-[11px] text-[#FF6B81]">{errorMsg}</p>
       )}
 
-      {/* Detected bets + actions */}
+      {/* Detected bets + shared actions */}
       {isBetSlip && bets.length > 0 && (
         <div className="mt-3 space-y-3">
           <div className="space-y-2">
@@ -226,42 +140,13 @@ export default function SlipUpload() {
             ))}
           </div>
 
-          {/* Action buttons: Post, Save, Track */}
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => handleSave("post")}
-              disabled={saving}
-              className="w-full rounded-full bg-[var(--forza-accent)] text-black font-semibold py-2.5 text-[13px] shadow-[0_0_18px_var(--forza-glow)] disabled:opacity-60"
-            >
-              {saving ? "Working…" : "Post"}
-            </button>
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleSave("save")}
-                disabled={saving}
-                className="flex-1 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] text-[12px] text-white py-2 disabled:opacity-60"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSave("track")}
-                disabled={saving}
-                className="flex-1 rounded-full bg-[#1A1A1A] border border-[var(--forza-accent)] text-[12px] text-[var(--forza-accent)] py-2 disabled:opacity-60"
-              >
-                Track
-              </button>
-            </div>
-          </div>
-
-          {saveMessage && (
-            <p className="text-[11px] text-[#A8A8A8]">
-              {saveMessage}
-            </p>
-          )}
+          <SlipActions
+            bets={bets}
+            bookmaker={result?.bookmaker ?? null}
+            bookingCode={result?.bookingCode ?? null}
+            rawText={result?.rawText ?? ""}
+            source="image"
+          />
         </div>
       )}
     </div>
