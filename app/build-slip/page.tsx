@@ -1,5 +1,7 @@
 import Header from "@/components/Header";
 
+import BetpawaBookingImport from "@/components/BetpawaBookingImport";
+
 export default function BuildSlipPage() {
   return (
     <>
@@ -49,6 +51,10 @@ export default function BuildSlipPage() {
           <button className="w-full rounded-xl bg-[#A4FF2F] text-black text-[12px] font-semibold py-2.5 hover:brightness-95 active:scale-[0.97] transition">
             Analyze slip (mock)
           </button>
+        </section>
+
+        <section className="mb-4">
+          <BetpawaBookingImport />
         </section>
 
         {/* AI generate slip section */}
