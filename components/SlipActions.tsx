@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebaseClient";
 import {
   addDoc,
@@ -36,6 +37,7 @@ export default function SlipActions({
   rawText = "",
   source,
 }: SlipActionsProps) {
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -83,12 +85,18 @@ export default function SlipActions({
         });
       }
 
+      // Set message and navigate based on mode
       if (mode === "save") {
         setSaveMessage("Slip saved.");
+        // stay on the same page
       } else if (mode === "track") {
         setSaveMessage("Slip saved and marked for tracking.");
+        // go to follow / tracking page
+        router.push("/profile");
       } else if (mode === "post") {
         setSaveMessage("Slip saved and posted to your feed.");
+        // go to feed page
+        router.push("/feed");
       }
     } catch (err: any) {
       console.error("[FORZA] save/post slip error:", err);

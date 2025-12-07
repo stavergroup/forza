@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import LiveFeedSection from "@/components/LiveFeedSection";
 
 type DemoPost = {
   id: number;
@@ -218,6 +219,9 @@ export default function FeedPage() {
             </article>
           ))}
         </section>
+
+        {/* Live feed from Firestore */}
+        <LiveFeedSection />
       </div>
     </>
   );
