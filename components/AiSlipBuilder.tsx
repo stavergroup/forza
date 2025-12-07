@@ -12,6 +12,7 @@ type AiBet = {
   selection: string;
   odds: number;
   kickoffTime: string; // ISO 8601
+  league?: string;
 };
 
 type AiSlip = {
@@ -236,6 +237,8 @@ export default function AiSlipBuilder() {
               market: b.market,
               selection: b.selection,
               odds: b.odds,
+              kickoffTime: b.kickoffTime ?? null,
+              league: (b as any).league ?? null,
             }))}
             bookmaker={null}
             bookingCode={null}

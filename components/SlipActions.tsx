@@ -15,6 +15,8 @@ export type SlipBet = {
   market: string;
   selection: string;
   odds: number | null;
+  kickoffTime?: string | null;
+  league?: string | null;
 };
 
 type SaveMode = "save" | "track" | "post";
@@ -69,6 +71,8 @@ export default function SlipActions({
           market: b.market,
           selection: b.selection,
           odds: b.odds ?? null,
+          kickoffTime: b.kickoffTime ?? null,
+          league: b.league ?? null,
         })),
         source,
         rawText,
@@ -85,17 +89,13 @@ export default function SlipActions({
         });
       }
 
-      // Set message and navigate based on mode
       if (mode === "save") {
         setSaveMessage("Slip saved.");
-        // stay on the same page
       } else if (mode === "track") {
         setSaveMessage("Slip saved and marked for tracking.");
-        // go to follow / tracking page
         router.push("/profile");
       } else if (mode === "post") {
         setSaveMessage("Slip saved and posted to your feed.");
-        // go to feed page
         router.push("/feed");
       }
     } catch (err: any) {

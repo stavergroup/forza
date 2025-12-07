@@ -17,7 +17,8 @@ type SlipBet = {
   awayTeam: string;
   market: string;
   selection: string;
-  odds: number | null;
+  odds?: number | null;
+  kickoffTime?: string | null;
 };
 
 type SlipDoc = {
@@ -27,6 +28,7 @@ type SlipDoc = {
   bets: SlipBet[];
   source?: "image" | "import" | "ai" | string;
   createdAt?: any;
+  totalOdds?: number | null;
 };
 
 type PostDoc = {
@@ -119,7 +121,7 @@ export default function LiveFeedSection() {
   }
 
   return (
-    <section className="mt-4 space-y-3">
+    <section className="mt-6 space-y-3">
       <h2 className="text-[13px] font-medium text-[#EDEDED]">
         Latest slips (live)
       </h2>
@@ -130,11 +132,26 @@ export default function LiveFeedSection() {
         const isMine =
           currentUser && slip.userId === currentUser.uid;
 
+        const picksCount = slip.bets.length;
+
+        // Use stored totalOdds if present, otherwise compute from odds
+        const computedTotal =
+          slip.totalOdds && slip.totalOdds > 0
+            ? slip.totalOdds
+            : slip.bets.reduce((acc, b) => {
+                const o =
+                  typeof b.odds === "number" && !Number.isNaN(b.odds)
+                    ? b.odds
+                    : 1;
+                return acc * o;
+              }, 1);
+
         return (
           <article
             key={post.id}
-            className="rounded-2xl bg-[#050505] border border-[#151515] p-3 space-y-2"
+            className="rounded-2xl bg-[#050505] border border-[#151515] p-3 space-y-3"
           >
+            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <span className="text-[12px] text-white font-medium">
@@ -149,33 +166,49 @@ export default function LiveFeedSection() {
                     ? "Uploaded betslip"
                     : "Slip"}
                   {slip.bookmaker && ` • ${slip.bookmaker}`}
-                  {slip.bookingCode && ` • Code ${slip.bookingCode}`}
+                  {slip.bookingCode && ` • ${slip.bookingCode}`}
                 </span>
               </div>
-              <span className="rounded-full border border-[var(--forza-accent)] px-2 py-[2px] text-[9px] text-[var(--forza-accent)]">
-                Live
-              </span>
+
+              <div className="flex flex-col items-end text-[10px]">
+                <span className="text-[var(--forza-accent)] font-semibold">
+                  {picksCount}-pick · {computedTotal.toFixed(2)}x
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-1 mt-1">
+            {/* Bets */}
+            <div className="space-y-2">
               {slip.bets.map((b, idx) => (
                 <div
                   key={idx}
-                  className="rounded-xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2 text-[11px]"
+                  className="rounded-2xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2 text-[11px]"
                 >
                   <p className="text-white">
-                    {b.homeTeam} <span className="text-[#777]">vs</span>{" "}
+                    {b.homeTeam}{" "}
+                    <span className="text-[#777]">vs</span>{" "}
                     {b.awayTeam}
                   </p>
                   <p className="text-[#A8A8A8]">
                     {b.market} • {b.selection}
-                    {b.odds != null && (
+                    {typeof b.odds === "number" && !Number.isNaN(b.odds) && (
                       <span className="text-[var(--forza-accent)]">
                         {" "}
-                        • @ {b.odds}
+                        @ {b.odds.toFixed(2)}
                       </span>
                     )}
                   </p>
+                  {b.kickoffTime && (
+                    <p className="text-[10px] text-[#7A7A7A] mt-[2px]">
+                      Kickoff:{" "}
+                      {new Date(b.kickoffTime).toLocaleString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "short",
+                      })}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
