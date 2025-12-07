@@ -157,3 +157,43 @@ export async function getFollowingCount(userId: string) {
   const snap = await getDocs(q);
   return snap.size;
 }
+
+/**
+ * Follow a user
+ */
+export async function followUser({
+  followerId,
+  followingId,
+}: {
+  followerId: string;
+  followingId: string;
+}) {
+  if (followerId === followingId) return;
+
+  const relId = `${followerId}_${followingId}`;
+  const relRef = doc(db, "userFollows", relId);
+
+  await setDoc(relRef, {
+    followerId,
+    followingId,
+    createdAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Unfollow a user
+ */
+export async function unfollowUser({
+  followerId,
+  followingId,
+}: {
+  followerId: string;
+  followingId: string;
+}) {
+  if (followerId === followingId) return;
+
+  const relId = `${followerId}_${followingId}`;
+  const relRef = doc(db, "userFollows", relId);
+
+  await deleteDoc(relRef);
+}

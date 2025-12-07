@@ -17,6 +17,8 @@ import {
   limit,
 } from "firebase/firestore";
 import { X } from "@phosphor-icons/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Comment = {
   id: string;
@@ -65,6 +67,7 @@ export default function CommentsSheet({
   const [isPosting, setIsPosting] = useState(false);
   const [pendingCommentId, setPendingCommentId] = useState<string | null>(null);
   const currentUser = auth.currentUser;
+  const router = useRouter();
 
   useEffect(() => {
     setLoading(true);
@@ -215,17 +218,38 @@ export default function CommentsSheet({
               const isPending = !comment.createdAt;
               const timeAgo = isPending ? "Posting..." : timeAgoFromTimestamp(comment.createdAt);
 
+              const handleAuthorClick = () => {
+                onClose();
+                router.push(`/u/${comment.userId}`);
+              };
+
               return (
                 <div key={comment.id} className={`flex gap-3 items-start ${isPending ? "opacity-70" : ""}`}>
-                  <div className="h-8 w-8 rounded-full bg-teal-500/80 flex items-center justify-center text-xs font-semibold text-black flex-shrink-0">
-                    {avatarLabel}
-                  </div>
+                  <Link
+                    href={`/u/${comment.userId}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleAuthorClick();
+                    }}
+                    className="flex-shrink-0"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-teal-500/80 flex items-center justify-center text-xs font-semibold text-black">
+                      {avatarLabel}
+                    </div>
+                  </Link>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-white truncate">
+                      <Link
+                        href={`/u/${comment.userId}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleAuthorClick();
+                        }}
+                        className="text-sm font-medium text-white truncate hover:text-[#a4ff2f] transition"
+                      >
                         {displayName}
-                      </span>
+                      </Link>
                       <span className={`text-xs flex-shrink-0 ${isPending ? "text-slate-500" : "text-slate-400"}`}>
                         {timeAgo}
                       </span>

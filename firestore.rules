@@ -43,8 +43,8 @@ service cloud.firestore {
     // User follows - users can only modify their own follows
     match /userFollows/{followId} {
       allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == resource.data.followerId;
-      allow delete: if request.auth != null && request.auth.uid == resource.data.followerId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.followerId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.followerId;
     }
 
     // Legacy collections (if still in use)

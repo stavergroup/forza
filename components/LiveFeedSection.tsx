@@ -19,6 +19,7 @@ import {
 } from "firebase/firestore";
 import CommentsSheet from "./CommentsSheet";
 import { SlipSocialBar } from "./SlipSocialBar";
+import Link from "next/link";
 
 type SlipBet = {
   homeTeam: string;
@@ -278,7 +279,7 @@ export default function LiveFeedSection() {
             className="rounded-3xl bg-[#050505] border border-[#151515] p-3.5 space-y-3"
           >
             {/* Top row: avatar + name + time */}
-            <div className="flex items-center gap-3">
+            <Link href={`/u/${post.userId}`} className="flex items-center gap-3">
               {avatarPhoto ? (
                 <img
                   src={avatarPhoto}
@@ -305,7 +306,7 @@ export default function LiveFeedSection() {
                   )}
                 </div>
               </div>
-            </div>
+            </Link>
 
             {/* Slip preview */}
             <div className="rounded-3xl bg-[#050505] border border-[var(--forza-accent-soft,#27361a)] px-3.5 py-3 space-y-2">
