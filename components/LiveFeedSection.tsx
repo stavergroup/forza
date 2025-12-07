@@ -17,13 +17,8 @@ import {
   deleteDoc,
   where,
 } from "firebase/firestore";
-import {
-  Heart,
-  ChatCircle,
-  ShareNetwork,
-  Star,
-} from "@phosphor-icons/react";
 import CommentsSheet from "./CommentsSheet";
+import { SlipSocialBar } from "./SlipSocialBar";
 
 type SlipBet = {
   homeTeam: string;
@@ -44,7 +39,7 @@ type SlipDoc = {
   source?: "image" | "import" | "ai" | string;
   createdAt?: any;
   totalOdds?: number | null;
-  likesCount?: number;
+  likeCount?: number;
   commentsCount?: number;
 };
 
@@ -97,7 +92,6 @@ export default function LiveFeedSection() {
   const currentUser = auth.currentUser;
 
   // Social state maps keyed by slipId
-  const [likesState, setLikesState] = useState<Record<string, boolean>>({});
   const [likesCounts, setLikesCounts] = useState<Record<string, number>>({});
   const [commentsCounts, setCommentsCounts] = useState<Record<string, number>>({});
   const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
@@ -157,47 +151,18 @@ export default function LiveFeedSection() {
           setItems(enriched);
 
           // Initialize social state for new items
-          const newLikesState: Record<string, boolean> = {};
           const newLikesCounts: Record<string, number> = {};
           const newCommentsCounts: Record<string, number> = {};
           const newFollowingState: Record<string, boolean> = {};
 
-          // Check existing likes for current user
-          if (currentUser) {
-            const likesPromises = enriched
-              .filter(({ slip }) => slip?.id)
-              .map(async ({ slip }) => {
-                try {
-                  const likeQuery = query(
-                    collection(db, "slipLikes"),
-                    where("slipId", "==", slip!.id),
-                    where("userId", "==", currentUser.uid)
-                  );
-                  const likeSnap = await getDoc(doc(db, "slipLikes", `${slip!.id}_${currentUser.uid}`));
-                  return { slipId: slip!.id, isLiked: likeSnap.exists() };
-                } catch {
-                  return { slipId: slip!.id, isLiked: false };
-                }
-              });
-
-            const likesResults = await Promise.all(likesPromises);
-            likesResults.forEach(({ slipId, isLiked }) => {
-              if (slipId) {
-                newLikesState[slipId] = isLiked;
-              }
-            });
-          }
-
           enriched.forEach(({ slip }) => {
             if (slip?.id) {
-              if (!newLikesState[slip.id]) newLikesState[slip.id] = false;
-              newLikesCounts[slip.id] = slip.likesCount ?? 0;
+              newLikesCounts[slip.id] = slip.likeCount ?? 0;
               newCommentsCounts[slip.id] = slip.commentsCount ?? 0;
               newFollowingState[slip.id] = false; // TODO: Load from Firestore
             }
           });
 
-          setLikesState(newLikesState);
           setLikesCounts(newLikesCounts);
           setCommentsCounts(newCommentsCounts);
           setFollowingState(newFollowingState);
@@ -282,50 +247,10 @@ export default function LiveFeedSection() {
                 return acc * o;
               }, 1);
 
-        const isLiked = likesState[slipId] ?? false;
         const likesCount = likesCounts[slipId] ?? 0;
         const commentsCount = commentsCounts[slipId] ?? 0;
         const isFollowing = followingState[slipId] ?? false;
         const sharesCount = 0;
-
-        const handleToggleLike = async () => {
-          if (!currentUser || !slipId) return;
-          const next = !isLiked;
-          setLikesState(prev => ({ ...prev, [slipId]: next }));
-          setLikesCounts(prev => ({ ...prev, [slipId]: (prev[slipId] ?? 0) + (next ? 1 : -1) }));
-
-          try {
-            if (next) {
-              // Like: create slipLike document
-              await addDoc(collection(db, "slipLikes"), {
-                slipId,
-                userId: currentUser.uid,
-                createdAt: serverTimestamp(),
-              });
-              await updateDoc(doc(db, "slips", slipId), {
-                likesCount: increment(1),
-              });
-            } else {
-              // Unlike: find and delete slipLike document
-              const likeQuery = query(
-                collection(db, "slipLikes"),
-                where("slipId", "==", slipId),
-                where("userId", "==", currentUser.uid)
-              );
-              const likeSnap = await getDoc(doc(db, "slipLikes", `${slipId}_${currentUser.uid}`));
-              if (likeSnap.exists()) {
-                await deleteDoc(doc(db, "slipLikes", likeSnap.id));
-              }
-              await updateDoc(doc(db, "slips", slipId), {
-                likesCount: increment(-1),
-              });
-            }
-          } catch {
-            // Revert optimistic update on error
-            setLikesState(prev => ({ ...prev, [slipId]: !next }));
-            setLikesCounts(prev => ({ ...prev, [slipId]: (prev[slipId] ?? 0) + (next ? -1 : 1) }));
-          }
-        };
 
         const handleToggleFollow = () => {
           const next = !isFollowing;
@@ -440,67 +365,12 @@ export default function LiveFeedSection() {
               </div>
             </div>
 
-            {/* Actions row: icons + counts */}
-            <div className="mt-3 flex items-center justify-between px-1">
-              {/* LIKE */}
-              <button
-                type="button"
-                onClick={handleToggleLike}
-                className="flex items-center gap-1"
-              >
-                <Heart
-                  size={20}
-                  weight={isLiked ? "fill" : "regular"}
-                  className={
-                    isLiked ? "text-[#a4ff2f]" : "text-slate-400"
-                  }
-                />
-                <span className="text-[11px] text-slate-400">
-                  {likesCount}
-                </span>
-              </button>
-
-              {/* COMMENT */}
-              <button
-                type="button"
-                onClick={() => setSelectedSlipForComments(slipId)}
-                className="flex items-center gap-1"
-              >
-                <ChatCircle size={20} className="text-slate-400" />
-                <span className="text-[11px] text-slate-400">
-                  {commentsCount}
-                </span>
-              </button>
-
-              {/* SHARE */}
-              <button
-                type="button"
-                onClick={handleShare}
-                className="flex items-center gap-1"
-              >
-                <ShareNetwork size={20} className="text-slate-400" />
-                <span className="text-[11px] text-slate-400">
-                  {sharesCount}
-                </span>
-              </button>
-
-              {/* FOLLOW */}
-              <button
-                type="button"
-                onClick={handleToggleFollow}
-                className="flex items-center gap-1"
-              >
-                <Star
-                  size={20}
-                  weight={isFollowing ? "fill" : "regular"}
-                  className={
-                    isFollowing
-                      ? "text-[#a4ff2f]"
-                      : "text-slate-400"
-                  }
-                />
-              </button>
-            </div>
+            <SlipSocialBar
+              slipId={slipId}
+              initialLikeCount={likesCount}
+              initialCommentCount={commentsCount}
+              onOpenComments={() => setSelectedSlipForComments(slipId)}
+            />
 
           </article>
         );

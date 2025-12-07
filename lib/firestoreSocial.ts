@@ -27,8 +27,7 @@ export async function toggleSlipLike({
   userId: string;
   slipCollection?: string;
 }) {
-  const likeId = `${slipId}_${userId}`;
-  const likeRef = doc(db, "slipLikes", likeId);
+  const likeRef = doc(db, slipCollection, slipId, "likes", userId);
   const slipRef = doc(db, slipCollection, slipId);
 
   await runTransaction(db, async (tx) => {
@@ -36,19 +35,18 @@ export async function toggleSlipLike({
     const slipSnap = await tx.get(slipRef);
     if (!slipSnap.exists()) return;
 
-    const currentLikes = slipSnap.data().likesCount || 0;
+    const currentLikes = slipSnap.data().likeCount || 0;
 
     if (likeSnap.exists()) {
       // Unlike
       tx.delete(likeRef);
-      tx.update(slipRef, { likesCount: Math.max(0, currentLikes - 1) });
+      tx.update(slipRef, { likeCount: Math.max(0, currentLikes - 1) });
     } else {
       tx.set(likeRef, {
-        slipId,
         userId,
         createdAt: serverTimestamp(),
       });
-      tx.update(slipRef, { likesCount: currentLikes + 1 });
+      tx.update(slipRef, { likeCount: currentLikes + 1 });
     }
   });
 }
@@ -59,12 +57,13 @@ export async function toggleSlipLike({
 export async function hasLikedSlip({
   slipId,
   userId,
+  slipCollection = "slips",
 }: {
   slipId: string;
   userId: string;
+  slipCollection?: string;
 }): Promise<boolean> {
-  const likeId = `${slipId}_${userId}`;
-  const likeRef = doc(db, "slipLikes", likeId);
+  const likeRef = doc(db, slipCollection, slipId, "likes", userId);
   const snap = await getDoc(likeRef);
   return snap.exists();
 }
@@ -86,22 +85,14 @@ export async function addSlipComment({
   if (!text.trim()) return;
 
   const slipRef = doc(db, slipCollection, slipId);
-  const commentsRef = collection(db, "slipComments");
+  const commentsRef = collection(db, "comments");
 
-  await runTransaction(db, async (tx) => {
-    const slipSnap = await tx.get(slipRef);
-    if (!slipSnap.exists()) return;
-    const currentComments = slipSnap.data().commentsCount || 0;
-
-    tx.update(slipRef, { commentsCount: currentComments + 1 });
-
-    // Create comment doc
-    tx.set(doc(commentsRef), {
-      slipId,
-      userId,
-      text: text.trim(),
-      createdAt: serverTimestamp(),
-    });
+  // Create comment doc
+  await addDoc(commentsRef, {
+    slipId,
+    userId,
+    text: text.trim(),
+    createdAt: serverTimestamp(),
   });
 }
 

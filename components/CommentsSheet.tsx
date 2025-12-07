@@ -18,14 +18,13 @@ import {
 } from "firebase/firestore";
 import { X } from "@phosphor-icons/react";
 
-type CommentDoc = {
+type Comment = {
   id: string;
-  slipId: string;
-  userId: string;
   text: string;
-  createdAt: any;
-  userDisplayName?: string;
-  userAvatar?: string | null;
+  userId: string;
+  userName: string;
+  userInitial: string;
+  createdAt?: Date;
 };
 
 function timeAgoFromTimestamp(ts: any): string {
@@ -58,7 +57,7 @@ export default function CommentsSheet({
   slipId: string;
   onClose: () => void;
 }) {
-  const [comments, setComments] = useState<CommentDoc[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,11 +70,11 @@ export default function CommentsSheet({
     setLoading(true);
     setIsInitialLoading(true);
 
-    // Temporarily simplify query to test if collection exists
+    const commentsRef = collection(db, "comments");
     const q = query(
-      collection(db, "slipComments"),
-      orderBy("createdAt", "desc"),
-      limit(10)
+      commentsRef,
+      where("slipId", "==", slipId),
+      orderBy("createdAt", "asc")
     );
 
     console.log("Setting up comments query for slipId:", slipId, "- querying all comments temporarily");
@@ -84,27 +83,23 @@ export default function CommentsSheet({
       q,
       (snapshot) => {
         console.log("Comments snapshot received:", snapshot.docs.length, "docs");
-        const commentDocs: CommentDoc[] = snapshot.docs.map((docSnap) => {
+        const items: Comment[] = [];
+        snapshot.forEach((docSnap) => {
           const data = docSnap.data() as any;
-          return {
+          items.push({
             id: docSnap.id,
-            slipId: data.slipId,
-            userId: data.userId,
             text: data.text,
-            createdAt: data.createdAt,
-            userDisplayName: data.userDisplayName,
-            userAvatar: data.userAvatar,
-          };
+            userId: data.userId,
+            userName: data.userName,
+            userInitial: data.userInitial,
+            createdAt: data.createdAt?.toDate?.(),
+          });
         });
 
         // Filter out any pending comment that's now in Firestore
-        const filteredComments = commentDocs.filter((c) => c.id !== pendingCommentId);
+        const filteredComments = items.filter((c) => c.id !== pendingCommentId);
 
-        setComments((prev) => {
-          // Keep any optimistic pending comment that still has id === pendingCommentId
-          const pending = prev.find((c) => c.id === pendingCommentId && !filteredComments.some(fc => fc.id === pendingCommentId));
-          return pending ? [pending, ...filteredComments] : filteredComments;
-        });
+        setComments(items);
 
         setLoading(false);
         setIsInitialLoading(false);
@@ -129,51 +124,40 @@ export default function CommentsSheet({
     };
   }, [slipId, pendingCommentId]);
 
-  const handleSubmitComment = async () => {
+  const handlePost = async () => {
     if (!currentUser || !commentText.trim() || isPosting) return;
-
-    const text = commentText.trim();
     setIsPosting(true);
 
-    // Create a temporary local id
-    const tempId = `pending-${Date.now()}`;
+    const displayName = currentUser.displayName || "FORZA user";
+    const initial = displayName.charAt(0).toUpperCase();
 
-    // Add optimistic comment to state
-    const optimisticComment: CommentDoc = {
+    // optimistic UI
+    const tempId = `temp-${Date.now()}`;
+    const newComment: Comment = {
       id: tempId,
-      slipId,
+      text: commentText.trim(),
       userId: currentUser.uid,
-      text,
-      userDisplayName: currentUser.displayName || "FORZA user",
-      userAvatar: currentUser.photoURL || null,
-      createdAt: null, // means "pending"
+      userName: displayName,
+      userInitial: initial,
+      createdAt: new Date(),
     };
-
-    setComments(prev => [optimisticComment, ...prev]);
-    setPendingCommentId(tempId);
+    setComments((prev) => [...prev, newComment]);
+    const textToSave = commentText.trim();
     setCommentText("");
 
     try {
-      // Write to Firestore
-      await addDoc(collection(db, "slipComments"), {
+      await addDoc(collection(db, "comments"), {
         slipId,
+        text: textToSave,
         userId: currentUser.uid,
-        text,
-        userDisplayName: currentUser.displayName || "FORZA user",
-        userAvatar: currentUser.photoURL || null,
+        userName: displayName,
+        userInitial: initial,
         createdAt: serverTimestamp(),
       });
-
-      await updateDoc(doc(db, "slips", slipId), {
-        commentsCount: increment(1),
-      });
-
-      setPendingCommentId(null);
-    } catch {
-      // Remove optimistic comment on failure
-      setComments(prev => prev.filter(c => c.id !== tempId));
-      setPendingCommentId(null);
-      // TODO: optional toast/snackbar
+    } catch (e) {
+      // rollback on error
+      setComments((prev) => prev.filter((c) => c.id !== tempId));
+      setCommentText(textToSave);
     } finally {
       setIsPosting(false);
     }
@@ -226,25 +210,16 @@ export default function CommentsSheet({
             </div>
           ) : (
             comments.map((comment) => {
-              const displayName = comment.userDisplayName || "FORZA user";
-              const photo = comment.userAvatar;
-              const avatarLabel = (displayName || "FORZA user").charAt(0).toUpperCase();
+              const displayName = comment.userName;
+              const avatarLabel = comment.userInitial;
               const isPending = !comment.createdAt;
               const timeAgo = isPending ? "Posting..." : timeAgoFromTimestamp(comment.createdAt);
 
               return (
                 <div key={comment.id} className={`flex gap-3 items-start ${isPending ? "opacity-70" : ""}`}>
-                  {photo ? (
-                    <img
-                      src={photo}
-                      alt="avatar"
-                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-teal-500/80 flex items-center justify-center text-xs font-semibold text-black flex-shrink-0">
-                      {avatarLabel}
-                    </div>
-                  )}
+                  <div className="h-8 w-8 rounded-full bg-teal-500/80 flex items-center justify-center text-xs font-semibold text-black flex-shrink-0">
+                    {avatarLabel}
+                  </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -290,14 +265,14 @@ export default function CommentsSheet({
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                handleSubmitComment();
+                handlePost();
               }
             }}
           />
 
           {/* Post Button */}
           <button
-            onClick={handleSubmitComment}
+            onClick={handlePost}
             disabled={isPosting || !commentText.trim() || !currentUser}
             className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#a4ff2f] text-black disabled:opacity-40"
           >
