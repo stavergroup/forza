@@ -100,6 +100,7 @@ export default function LiveFeedSection() {
   const [selectedSlipForComments, setSelectedSlipForComments] = useState<string | null>(null);
 
   useEffect(() => {
+    // GLOBAL FEED: no filter by userId
     const q = query(
       collection(db, "posts"),
       orderBy("createdAt", "desc"),
@@ -110,75 +111,57 @@ export default function LiveFeedSection() {
       q,
       async (snapshot) => {
         try {
-          const basePosts: PostDoc[] = snapshot.docs.map((d) => {
+          const basePosts = snapshot.docs.map((d) => {
             const data = d.data() as any;
             return {
               id: d.id,
-              userId: data.userId,
-              slipId: data.slipId,
+              userId: data.userId as string,
+              slipId: data.slipId as string,
               createdAt: data.createdAt,
             };
           });
 
-          const enriched: FeedItem[] = await Promise.all(
+          const enriched = await Promise.all(
             basePosts.map(async (post) => {
-              let slip: SlipDoc | null = null;
-              let user: UserProfile | null = null;
-              
-              if (!post.slipId || !post.userId) {
-                return { post, slip: null, user: null };
-              }
-              
+              let slip: any = null;
+              let user: any = null;
+
               try {
                 const [slipSnap, userSnap] = await Promise.all([
                   getDoc(doc(db, "slips", post.slipId)),
                   getDoc(doc(db, "users", post.userId)),
                 ]);
+
                 if (slipSnap.exists()) {
-                  const data = slipSnap.data() as SlipDoc;
-                  slip = { id: slipSnap.id, ...data };
+                  slip = { id: slipSnap.id, ...(slipSnap.data() as any) };
                 }
+
                 if (userSnap.exists()) {
-                  user = userSnap.data() as UserProfile;
+                  user = userSnap.data();
                 }
-              } catch {
-                // Silent fail
+              } catch (err) {
+                console.error("[FORZA] error loading slip/user for post", post.id, err);
               }
+
               return { post, slip, user };
             })
           );
 
           setItems(enriched);
-
-          // Initialize social state for new items
-          const newLikesCounts: Record<string, number> = {};
-          const newCommentsCounts: Record<string, number> = {};
-          const newFollowingState: Record<string, boolean> = {};
-
-          enriched.forEach(({ slip }) => {
-            if (slip?.id) {
-              newLikesCounts[slip.id] = slip.likeCount ?? 0;
-              newCommentsCounts[slip.id] = slip.commentsCount ?? 0;
-              newFollowingState[slip.id] = false; // TODO: Load from Firestore
-            }
-          });
-
-          setLikesCounts(newLikesCounts);
-          setCommentsCounts(newCommentsCounts);
-          setFollowingState(newFollowingState);
-        } catch {
-          // Silent fail
+        } catch (err) {
+          console.error("[FORZA] live feed subscription outer error:", err);
         } finally {
           setLoading(false);
         }
       },
-      () => {
+      (error) => {
+        console.error("[FORZA] live feed subscription error:", error);
         setLoading(false);
       }
     );
 
     return () => unsub();
-  }, []);
+  }, []); // 👈 IMPORTANT: no currentUser dependency
 
   if (loading) {
     return (
