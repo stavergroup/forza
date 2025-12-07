@@ -14,6 +14,8 @@ import {
   serverTimestamp,
   updateDoc,
   increment,
+  deleteDoc,
+  where,
 } from "firebase/firestore";
 import {
   Heart,
@@ -21,6 +23,7 @@ import {
   ShareNetwork,
   Star,
 } from "@phosphor-icons/react";
+import CommentsSheet from "./CommentsSheet";
 
 type SlipBet = {
   homeTeam: string;
@@ -98,9 +101,9 @@ export default function LiveFeedSection() {
   const [likesCounts, setLikesCounts] = useState<Record<string, number>>({});
   const [commentsCounts, setCommentsCounts] = useState<Record<string, number>>({});
   const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
-  const [commentBoxes, setCommentBoxes] = useState<Record<string, boolean>>({});
-  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
-  const [sendingComments, setSendingComments] = useState<Record<string, boolean>>({});
+
+  // Comments sheet state
+  const [selectedSlipForComments, setSelectedSlipForComments] = useState<string | null>(null);
 
   useEffect(() => {
     const q = query(
@@ -159,9 +162,35 @@ export default function LiveFeedSection() {
           const newCommentsCounts: Record<string, number> = {};
           const newFollowingState: Record<string, boolean> = {};
 
+          // Check existing likes for current user
+          if (currentUser) {
+            const likesPromises = enriched
+              .filter(({ slip }) => slip?.id)
+              .map(async ({ slip }) => {
+                try {
+                  const likeQuery = query(
+                    collection(db, "slipLikes"),
+                    where("slipId", "==", slip!.id),
+                    where("userId", "==", currentUser.uid)
+                  );
+                  const likeSnap = await getDoc(doc(db, "slipLikes", `${slip!.id}_${currentUser.uid}`));
+                  return { slipId: slip!.id, isLiked: likeSnap.exists() };
+                } catch {
+                  return { slipId: slip!.id, isLiked: false };
+                }
+              });
+
+            const likesResults = await Promise.all(likesPromises);
+            likesResults.forEach(({ slipId, isLiked }) => {
+              if (slipId) {
+                newLikesState[slipId] = isLiked;
+              }
+            });
+          }
+
           enriched.forEach(({ slip }) => {
             if (slip?.id) {
-              newLikesState[slip.id] = false; // TODO: Load from Firestore
+              if (!newLikesState[slip.id]) newLikesState[slip.id] = false;
               newLikesCounts[slip.id] = slip.likesCount ?? 0;
               newCommentsCounts[slip.id] = slip.commentsCount ?? 0;
               newFollowingState[slip.id] = false; // TODO: Load from Firestore
@@ -259,20 +288,40 @@ export default function LiveFeedSection() {
         const isFollowing = followingState[slipId] ?? false;
         const sharesCount = 0;
 
-        const showCommentBox = commentBoxes[slipId] ?? false;
-        const commentText = commentTexts[slipId] ?? "";
-        const sendingComment = sendingComments[slipId] ?? false;
-
         const handleToggleLike = async () => {
           if (!currentUser || !slipId) return;
           const next = !isLiked;
           setLikesState(prev => ({ ...prev, [slipId]: next }));
           setLikesCounts(prev => ({ ...prev, [slipId]: (prev[slipId] ?? 0) + (next ? 1 : -1) }));
+
           try {
-            await updateDoc(doc(db, "slips", slipId), {
-              likesCount: increment(next ? 1 : -1),
-            });
+            if (next) {
+              // Like: create slipLike document
+              await addDoc(collection(db, "slipLikes"), {
+                slipId,
+                userId: currentUser.uid,
+                createdAt: serverTimestamp(),
+              });
+              await updateDoc(doc(db, "slips", slipId), {
+                likesCount: increment(1),
+              });
+            } else {
+              // Unlike: find and delete slipLike document
+              const likeQuery = query(
+                collection(db, "slipLikes"),
+                where("slipId", "==", slipId),
+                where("userId", "==", currentUser.uid)
+              );
+              const likeSnap = await getDoc(doc(db, "slipLikes", `${slipId}_${currentUser.uid}`));
+              if (likeSnap.exists()) {
+                await deleteDoc(doc(db, "slipLikes", likeSnap.id));
+              }
+              await updateDoc(doc(db, "slips", slipId), {
+                likesCount: increment(-1),
+              });
+            }
           } catch {
+            // Revert optimistic update on error
             setLikesState(prev => ({ ...prev, [slipId]: !next }));
             setLikesCounts(prev => ({ ...prev, [slipId]: (prev[slipId] ?? 0) + (next ? -1 : 1) }));
           }
@@ -299,33 +348,6 @@ export default function LiveFeedSection() {
           }
         };
 
-        const handleSubmitComment = async () => {
-          if (!currentUser || !slipId) return;
-          if (!commentText.trim()) return;
-          try {
-            setSendingComments(prev => ({ ...prev, [slipId]: true }));
-            const text = commentText.trim();
-
-            await addDoc(collection(db, "slipComments"), {
-              slipId,
-              userId: currentUser.uid,
-              text,
-              createdAt: serverTimestamp(),
-            });
-
-            await updateDoc(doc(db, "slips", slipId), {
-              commentsCount: increment(1),
-            });
-
-            setCommentsCounts(prev => ({ ...prev, [slipId]: (prev[slipId] ?? 0) + 1 }));
-            setCommentTexts(prev => ({ ...prev, [slipId]: "" }));
-            setCommentBoxes(prev => ({ ...prev, [slipId]: false }));
-          } catch {
-            // Silent fail
-          } finally {
-            setSendingComments(prev => ({ ...prev, [slipId]: false }));
-          }
-        };
 
         return (
           <article
@@ -441,7 +463,7 @@ export default function LiveFeedSection() {
               {/* COMMENT */}
               <button
                 type="button"
-                onClick={() => setCommentBoxes(prev => ({ ...prev, [slipId]: !(prev[slipId] ?? false) }))}
+                onClick={() => setSelectedSlipForComments(slipId)}
                 className="flex items-center gap-1"
               >
                 <ChatCircle size={20} className="text-slate-400" />
@@ -480,31 +502,17 @@ export default function LiveFeedSection() {
               </button>
             </div>
 
-            {/* Comment box */}
-            {showCommentBox && (
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentTexts(prev => ({ ...prev, [slipId]: e.target.value }))}
-                  placeholder="Add a comment…"
-                  className="flex-1 rounded-full bg-[#101010] border border-[#333] px-3 py-1.5 text-[12px] text-white outline-none"
-                />
-                <button
-                  type="button"
-                  disabled={
-                    sendingComment || !commentText.trim() || !currentUser
-                  }
-                  onClick={handleSubmitComment}
-                  className="px-3 py-1.5 rounded-full bg-[#a4ff2f] text-[12px] font-semibold text-black disabled:opacity-50"
-                >
-                  {sendingComment ? "..." : "Post"}
-                </button>
-              </div>
-            )}
           </article>
         );
       })}
+
+      {/* Comments Sheet */}
+      {selectedSlipForComments && (
+        <CommentsSheet
+          slipId={selectedSlipForComments}
+          onClose={() => setSelectedSlipForComments(null)}
+        />
+      )}
     </section>
   );
 }
