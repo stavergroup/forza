@@ -126,6 +126,10 @@ export default function LiveFeedSection() {
               let slip: any = null;
               let user: any = null;
 
+              if (!post.slipId || !post.userId) {
+                return { post, slip: null, user: null };
+              }
+
               try {
                 const [slipSnap, userSnap] = await Promise.all([
                   getDoc(doc(db, "slips", post.slipId)),
