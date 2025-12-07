@@ -43,6 +43,7 @@ type UserProfile = {
   displayName?: string;
   handle?: string;
   avatarColor?: string;
+  photoURL?: string;
 };
 
 type FeedItem = {
@@ -77,7 +78,6 @@ function initialsFromName(name?: string) {
 export default function LiveFeedSection() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const currentUser = auth.currentUser;
 
   useEffect(() => {
     const q = query(
@@ -105,7 +105,7 @@ export default function LiveFeedSection() {
               let slip: SlipDoc | null = null;
               let user: UserProfile | null = null;
               
-              // Skip if slipId or userId is missing
+              // Skip if missing required IDs
               if (!post.slipId || !post.userId) {
                 return { post, slip: null, user: null };
               }
@@ -121,8 +121,8 @@ export default function LiveFeedSection() {
                 if (userSnap.exists()) {
                   user = userSnap.data() as UserProfile;
                 }
-              } catch (err) {
-                // Silent fail - just skip this post
+              } catch {
+                // Silent fail - just return null slip/user
               }
               return { post, slip, user };
             })
@@ -170,6 +170,8 @@ export default function LiveFeedSection() {
     );
   }
 
+  const currentUser = auth.currentUser;
+
   return (
     <section className="mt-6 space-y-3">
       <h2 className="text-[13px] font-medium text-[#EDEDED]">
@@ -182,13 +184,21 @@ export default function LiveFeedSection() {
         const isMine =
           currentUser && slip.userId === currentUser.uid;
 
+        const firestoreName = user?.displayName;
+        const authName = isMine ? currentUser?.displayName || undefined : undefined;
+
         const displayName =
-          (isMine ? "You" : user?.displayName) || "FORZA user";
+          authName ||
+          firestoreName ||
+          (isMine ? "You" : "FORZA user");
 
         const handle =
           user?.handle && !isMine ? `@${user.handle}` : isMine ? "@you" : "";
 
-        const avatarLabel = initialsFromName(user?.displayName || handle);
+        const avatarLabel = initialsFromName(displayName || handle);
+
+        const photo =
+          (isMine ? currentUser?.photoURL : user?.photoURL) || null;
 
         const picksCount = slip.bets.length;
 
@@ -212,36 +222,28 @@ export default function LiveFeedSection() {
           >
             {/* Top row: avatar + name + time */}
             <div className="flex items-center gap-3">
-              {(() => {
-                const photo =
-                  (isMine ? auth.currentUser?.photoURL : user?.photoURL) || null;
-                
-                return photo ? (
-                  <img
-                    src={photo}
-                    alt="avatar"
-                    className="h-9 w-9 rounded-full object-cover"
-                  />
-                ) : (
-                  <div
-                    className="h-9 w-9 rounded-full flex items-center justify-center text-[11px] font-semibold"
-                    style={{
-                      backgroundColor: user?.avatarColor || "#101010",
-                      color: "#ffffff",
-                    }}
-                  >
-                    {avatarLabel}
-                  </div>
-                );
-              })()}
+              {photo ? (
+                <img
+                  src={photo}
+                  alt="avatar"
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <div
+                  className="h-9 w-9 rounded-full flex items-center justify-center text-[11px] font-semibold"
+                  style={{
+                    backgroundColor: user?.avatarColor || "#101010",
+                    color: "#ffffff",
+                  }}
+                >
+                  {avatarLabel}
+                </div>
+              )}
 
               <div className="flex flex-col">
                 <span className="text-[13px] font-medium text-white">
-                  {isMine
-                    ? auth.currentUser?.displayName || "You"
-                    : user?.displayName || "FORZA user"}
+                  {displayName}
                 </span>
-
                 <div className="flex items-center gap-1 text-[11px] text-[#8A8A8A]">
                   {handle && <span>{handle}</span>}
                   {createdAgo && (
@@ -254,8 +256,8 @@ export default function LiveFeedSection() {
               </div>
             </div>
 
-            {/* Slip preview card (real) */}
-            <div className="rounded-3xl bg-[#050505] border border-[var(--forza-accent-soft, #27361a)] px-3.5 py-3 space-y-2">
+            {/* Slip preview card */}
+            <div className="rounded-3xl bg-[#050505] border border-[var(--forza-accent-soft,#27361a)] px-3.5 py-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[12px] text-[#E4E4E4]">
                   Slip preview
@@ -302,27 +304,17 @@ export default function LiveFeedSection() {
                   </div>
                 ))}
               </div>
-
             </div>
 
-            {/* Post actions row: Like / Comment / Share / Follow */}
+            {/* Post actions row */}
             <div className="flex items-center justify-between pt-1 text-[11px] text-[#A0A0A0]">
-              <button
-                type="button"
-                className="flex items-center gap-1"
-              >
+              <button type="button" className="flex items-center gap-1">
                 ♡ <span>Like</span>
               </button>
-              <button
-                type="button"
-                className="flex items-center gap-1"
-              >
+              <button type="button" className="flex items-center gap-1">
                 💬 <span>Comment</span>
               </button>
-              <button
-                type="button"
-                className="flex items-center gap-1"
-              >
+              <button type="button" className="flex items-center gap-1">
                 ↗ <span>Share</span>
               </button>
               <button
