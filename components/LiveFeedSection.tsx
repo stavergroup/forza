@@ -85,9 +85,13 @@ function initialsFromName(name?: string) {
 function SlipCard({ post, slip, user }: FeedItem) {
   const currentUser = auth.currentUser;
   const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(0);
+  const [sharesCount, setSharesCount] = useState(0);
   const [pending, setPending] = useState(false);
-  const [showCommentBox, setShowCommentBox] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
 
   const currentUserId = currentUser?.uid;
@@ -120,18 +124,19 @@ function SlipCard({ post, slip, user }: FeedItem) {
     };
   }, [currentUserId, slipId, slipOwnerId]);
 
-  async function handleLike() {
+  const handleToggleLike = async () => {
     if (!currentUserId || !slipId) return;
     setPending(true);
     try {
       await toggleSlipLike({ slipId, userId: currentUserId });
       setIsLiked((prev) => !prev);
+      setLikesCount((prev) => (isLiked ? prev - 1 : prev + 1));
     } finally {
       setPending(false);
     }
-  }
+  };
 
-  async function handleFollow() {
+  const handleToggleFollow = async () => {
     if (!currentUserId || !slipOwnerId || currentUserId === slipOwnerId) return;
     setPending(true);
     try {
@@ -140,29 +145,14 @@ function SlipCard({ post, slip, user }: FeedItem) {
         followingId: slipOwnerId,
       });
       setIsFollowing((prev) => !prev);
+      setFollowersCount((prev) => (isFollowing ? prev - 1 : prev + 1));
     } finally {
       setPending(false);
     }
-  }
+  };
 
-  async function handleCommentSubmit() {
-    if (!currentUserId || !slipId) return;
-    if (!commentText.trim()) return;
-    setPending(true);
-    try {
-      await addSlipComment({
-        slipId,
-        userId: currentUserId,
-        text: commentText,
-      });
-      setCommentText("");
-      setShowCommentBox(false);
-    } finally {
-      setPending(false);
-    }
-  }
-
-  function handleShare() {
+  const handleShare = () => {
+    setSharesCount((prev) => prev + 1);
     const url =
       typeof window !== "undefined"
         ? window.location.origin + "/feed?slip=" + slipId
@@ -170,7 +160,6 @@ function SlipCard({ post, slip, user }: FeedItem) {
 
     const text = "Check this FORZA slip I found";
 
-    // Native share if available
     if (typeof navigator !== "undefined" && (navigator as any).share) {
       (navigator as any)
         .share({ title: "FORZA slip", text, url })
@@ -182,7 +171,7 @@ function SlipCard({ post, slip, user }: FeedItem) {
       (navigator as any).clipboard.writeText(url).catch(() => {});
       alert("Link copied to clipboard");
     }
-  }
+  };
 
   if (!slip || !slip.bets || slip.bets.length === 0) return null;
 
@@ -296,60 +285,59 @@ function SlipCard({ post, slip, user }: FeedItem) {
         </div>
       </div>
 
-      {/* Social actions */}
-      <div className="mt-3 border-t border-[#202020] pt-2 flex flex-col gap-2">
-        <div className="flex items-center justify-between text-[12px] text-[#b3b3b3]">
-          <button
-            onClick={handleLike}
-            disabled={pending || !currentUserId}
-            className="flex items-center gap-1 disabled:opacity-50"
+      {/* Actions Row */}
+      <div className="mt-4 flex items-center justify-between text-[11px] text-slate-400 px-2">
+        {/* LIKE */}
+        <button
+          onClick={handleToggleLike}
+          disabled={pending || !currentUserId}
+          className="flex flex-col items-center flex-1 disabled:opacity-50"
+        >
+          <span
+            className={`text-lg ${
+              isLiked ? "text-[#a4ff2f]" : "text-slate-500"
+            }`}
           >
-            <span>{isLiked ? "❤️" : "🤍"}</span>
-            <span>{isLiked ? "Liked" : "Like"}</span>
-          </button>
+            ♥
+          </span>
+          <span className="mt-0.5">{likesCount ?? 0}</span>
+        </button>
 
-          <button
-            onClick={() => setShowCommentBox((v) => !v)}
-            className="flex items-center gap-1"
+        {/* COMMENT */}
+        <button
+          onClick={() => setShowComments(true)}
+          className="flex flex-col items-center flex-1"
+        >
+          <span className="text-lg">💬</span>
+          <span className="mt-0.5">{commentsCount ?? 0}</span>
+        </button>
+
+        {/* SHARE */}
+        <button
+          onClick={handleShare}
+          className="flex flex-col items-center flex-1"
+        >
+          <span className="text-lg">↗</span>
+          <span className="mt-0.5">{sharesCount ?? 0}</span>
+        </button>
+
+        {/* FOLLOW */}
+        <button
+          onClick={handleToggleFollow}
+          disabled={
+            pending || !currentUserId || currentUserId === slipOwnerId
+          }
+          className="flex flex-col items-center flex-1 disabled:opacity-50"
+        >
+          <span
+            className={`text-lg ${
+              isFollowing ? "text-[#a4ff2f]" : "text-slate-500"
+            }`}
           >
-            <span>💬</span>
-            <span>Comment</span>
-          </button>
-
-          <button onClick={handleShare} className="flex items-center gap-1">
-            <span>↗</span>
-            <span>Share</span>
-          </button>
-
-          <button
-            onClick={handleFollow}
-            disabled={
-              pending || !currentUserId || currentUserId === slipOwnerId
-            }
-            className="flex items-center gap-1 disabled:opacity-50"
-          >
-            <span>⭐</span>
-            <span>{isFollowing ? "Following" : "Follow"}</span>
-          </button>
-        </div>
-
-        {showCommentBox && currentUserId && (
-          <div className="flex items-center gap-2">
-            <input
-              className="flex-1 rounded-full bg-black/40 border border-[#333] px-3 py-1 text-[12px] text-white outline-none"
-              placeholder="Add a comment..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-            />
-            <button
-              onClick={handleCommentSubmit}
-              disabled={pending || !commentText.trim()}
-              className="px-3 py-1 rounded-full bg-[var(--forza-accent)] text-[12px] font-medium text-black disabled:opacity-60"
-            >
-              Post
-            </button>
-          </div>
-        )}
+            ★
+          </span>
+          <span className="mt-0.5">{followersCount ?? 0}</span>
+        </button>
       </div>
     </article>
   );
