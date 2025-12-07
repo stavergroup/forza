@@ -103,7 +103,7 @@ export default function LiveFeedSection() {
     const q = query(
       collection(db, "posts"),
       orderBy("createdAt", "desc"),
-      limit(10)
+      limit(20)
     );
 
     const unsub = onSnapshot(
