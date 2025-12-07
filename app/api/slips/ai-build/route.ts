@@ -11,26 +11,36 @@ if (!API_FOOTBALL_KEY) {
 
 type RiskLevel = "safe" | "medium" | "high";
 
-function getRiskConfig(risk: RiskLevel) {
+function getPerBetRange(risk: RiskLevel) {
+  // These are NOT hard rules, just guidance for the model.
   switch (risk) {
     case "safe":
-      return { minBets: 2, maxBets: 3, targetPerBet: "1.25–1.50" };
+      // Very small odds allowed. Many selections might be needed.
+      return "1.10–1.40";
     case "high":
-      return { minBets: 4, maxBets: 6, targetPerBet: "1.70–3.00" };
+      // Can mix small and higher odds.
+      return "1.25–3.00";
     case "medium":
     default:
-      return { minBets: 3, maxBets: 4, targetPerBet: "1.40–1.80" };
+      return "1.20–1.80";
   }
+}
+
+function productOfOdds(bets: { odds: number | null }[]): number | null {
+  const validOdds = bets
+    .map((b) => b.odds)
+    .filter((o): o is number => typeof o === "number" && o > 1.0);
+  if (validOdds.length === 0) return null;
+  return validOdds.reduce((acc, o) => acc * o, 1);
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({} as any));
+    const body = (await req.json().catch(() => ({}))) as any;
 
     const rawTargetOdds = Number(body.targetOdds || body.target_odds || 0);
-    const targetOdds = isNaN(rawTargetOdds) || rawTargetOdds <= 0
-      ? 5.0
-      : rawTargetOdds;
+    const targetOdds =
+      isNaN(rawTargetOdds) || rawTargetOdds <= 1.1 ? 2.0 : rawTargetOdds;
 
     const risk: RiskLevel = (body.risk || "medium").toLowerCase();
     const leagues: string[] = Array.isArray(body.leagues) ? body.leagues : [];
@@ -51,14 +61,17 @@ export async function POST(req: NextRequest) {
         headers: {
           "x-apisports-key": API_FOOTBALL_KEY,
         },
-        // avoid cache because odds change
         cache: "no-store",
       }
     );
 
     if (!fixturesRes.ok) {
       const text = await fixturesRes.text();
-      console.error("[FORZA] API-FOOTBALL fixtures error:", fixturesRes.status, text);
+      console.error(
+        "[FORZA] API-FOOTBALL fixtures error:",
+        fixturesRes.status,
+        text
+      );
       return NextResponse.json(
         { error: "Failed to fetch fixtures from API-FOOTBALL" },
         { status: 502 }
@@ -77,12 +90,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Limit to reasonable size for the model
+    // Limit fixtures to avoid huge payload
     fixtures = fixtures.slice(0, 40);
 
     if (fixtures.length === 0) {
       return NextResponse.json(
-        { error: "No fixtures found for today with the given filters." },
+        {
+          error:
+            "No fixtures found for today with the given filters. Try removing league filters.",
+        },
         { status: 400 }
       );
     }
@@ -94,10 +110,10 @@ export async function POST(req: NextRequest) {
       kickoff: f.fixture?.date,
     }));
 
-    const riskCfg = getRiskConfig(risk);
+    const perBetRange = getPerBetRange(risk);
 
     const systemPrompt =
-      "You are FORZA, a football betting assistant. You build sensible accumulator slips from real fixtures. " +
+      "You are FORZA, a football betting assistant. You build accumulator slips from real fixtures. " +
       "You must ONLY use the fixtures provided to you. Never invent matches.";
 
     const userPrompt = `
@@ -107,17 +123,33 @@ ${JSON.stringify(fixtureSummary, null, 2)}
 
 User preferences:
 - Target total odds: about ${targetOdds}
-- Risk level: ${risk.toUpperCase()} (bets per slip: ${riskCfg.minBets}-${riskCfg.maxBets}, typical odds ${riskCfg.targetPerBet})
-- Allowed markets: match winner (1X2), double chance, over/under goals (like Over 2.5), both teams to score, draw no bet.
-- Avoid exotic or very rare markets.
+- Risk level: ${risk.toUpperCase()}
+- You are allowed to use MANY small odds (e.g. 1.10, 1.20, 1.30) if needed.
+- Number of selections is flexible. Do NOT force a fixed amount.
+- However, do not exceed 15 selections in total.
 
-Rules:
-- Choose between ${riskCfg.minBets} and ${riskCfg.maxBets} bets.
-- For each bet, pick a simple, understandable market.
-- Total odds do NOT need to be exact. Close is fine.
-- Use decimal odds (e.g. 1.45, 1.80, 2.10).
-- DO NOT repeat the same fixture twice.
-- DO NOT invent new teams or matches.
+Guidance for odds per selection (NOT strict rules):
+- For SAFE slips, prefer very small odds like ${perBetRange}, mostly strong favourites and safer lines.
+- For MEDIUM, you can mix small and medium odds like ${perBetRange}.
+- For HIGH, you can include a few higher odds but you may still combine many small odds too.
+
+Allowed markets:
+- Match winner (1X2)
+- Double chance
+- Over/under goals (e.g. Over 1.5, Over 2.5, Under 3.5)
+- Both teams to score
+- Draw no bet
+
+Important behaviour:
+- Choose as many selections as you think are reasonable (for example anywhere between 2 and 15) to get close to the target odds.
+- You may use many low-odds selections instead of a few high-odds selections.
+- Use only the fixtures provided, and never repeat the same fixture twice.
+- The product of all odds should aim to be close to ${targetOdds}, but it does NOT need to be exact.
+- Staying in the range ${(targetOdds * 0.6).toFixed(
+      2
+    )} to ${(targetOdds * 1.6).toFixed(
+      2
+    )} is acceptable if necessary, but try to be as close as you can.
 
 Return STRICT JSON in this shape (no explanation outside JSON):
 
@@ -180,16 +212,6 @@ Return STRICT JSON in this shape (no explanation outside JSON):
             : Number(b.odds) || null,
       }));
 
-    const totalOdds =
-      typeof parsed.totalOdds === "number"
-        ? parsed.totalOdds
-        : Number(parsed.totalOdds) || null;
-
-    const summary =
-      typeof parsed.summary === "string" ? parsed.summary : "";
-    const strategy =
-      typeof parsed.strategy === "string" ? parsed.strategy : "";
-
     if (cleanBets.length === 0) {
       return NextResponse.json(
         { error: "AI did not return any valid bets." },
@@ -197,11 +219,19 @@ Return STRICT JSON in this shape (no explanation outside JSON):
       );
     }
 
+    const actualTotal = productOfOdds(cleanBets);
+    const summary =
+      typeof parsed.summary === "string" ? parsed.summary : "";
+    const strategy =
+      typeof parsed.strategy === "string" ? parsed.strategy : "";
+
     return NextResponse.json({
       bets: cleanBets,
-      totalOdds,
+      totalOdds: actualTotal,
       summary,
       strategy,
+      targetOddsRequested: targetOdds,
+      risk,
     });
   } catch (err: any) {
     console.error("[FORZA] /api/slips/ai-build error:", err);
