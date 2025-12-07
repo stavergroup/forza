@@ -137,7 +137,10 @@ export default function LiveFeedSection() {
                 ]);
 
                 if (slipSnap.exists()) {
-                  slip = { id: slipSnap.id, ...(slipSnap.data() as any) };
+                  const data = slipSnap.data();
+                  if (data) {
+                    slip = { id: slipSnap.id, ...data };
+                  }
                 }
 
                 if (userSnap.exists()) {
@@ -203,23 +206,29 @@ export default function LiveFeedSection() {
         if (!slip || !slip.bets || slip.bets.length === 0) return null;
 
         const slipId = slip.id || post.slipId;
-        const isMine =
-          currentUser && slip.userId === currentUser.uid;
+        const isMine = currentUser && post.userId === currentUser.uid;
 
         const createdAgo = timeAgoFromTimestamp(post.createdAt);
 
-        const photo =
-          (isMine ? auth.currentUser?.photoURL : user?.photoURL) || null;
+        const profileDisplayName =
+          isMine
+            ? (currentUser?.displayName || user?.displayName || "You")
+            : (user?.displayName || user?.handle || "FORZA user");
 
-        const displayName =
-          (isMine
-            ? auth.currentUser?.displayName
-            : user?.displayName) || "FORZA user";
+        const profileHandle =
+          isMine
+            ? "@you"
+            : (user?.handle ? `@${user.handle}` : "");
 
-        const handle =
-          user?.handle && !isMine ? `@${user.handle}` : isMine ? "@you" : "";
+        const avatarPhoto =
+          isMine
+            ? (currentUser?.photoURL || user?.photoURL || null)
+            : (user?.photoURL || null);
 
-        const avatarLabel = initialsFromName(displayName);
+        const avatarInitial = (profileDisplayName || "F")
+          .trim()
+          .charAt(0)
+          .toUpperCase();
 
         const picksCount = slip.bets.length;
 
@@ -268,33 +277,27 @@ export default function LiveFeedSection() {
           >
             {/* Top row: avatar + name + time */}
             <div className="flex items-center gap-3">
-              {photo ? (
+              {avatarPhoto ? (
                 <img
-                  src={photo}
-                  alt="avatar"
+                  src={avatarPhoto}
+                  alt={profileDisplayName}
                   className="h-9 w-9 rounded-full object-cover"
                 />
               ) : (
-                <div
-                  className="h-9 w-9 rounded-full flex items-center justify-center text-[11px] font-semibold"
-                  style={{
-                    backgroundColor: user?.avatarColor || "#101010",
-                    color: "#ffffff",
-                  }}
-                >
-                  {avatarLabel}
+                <div className="h-9 w-9 rounded-full bg-[#101010] flex items-center justify-center text-[11px] font-semibold text-white">
+                  {avatarInitial}
                 </div>
               )}
 
               <div className="flex flex-col">
                 <span className="text-[13px] font-medium text-white">
-                  {displayName}
+                  {profileDisplayName}
                 </span>
                 <div className="flex items-center gap-1 text-[11px] text-[#8A8A8A]">
-                  {handle && <span>{handle}</span>}
+                  {profileHandle && <span>{profileHandle}</span>}
                   {createdAgo && (
                     <>
-                      {handle && <span>•</span>}
+                      {profileHandle && <span>•</span>}
                       <span>{createdAgo}</span>
                     </>
                   )}
