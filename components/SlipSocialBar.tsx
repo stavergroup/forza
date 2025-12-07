@@ -87,7 +87,7 @@ export function SlipSocialBar({
   const handleShare = () => {
     if (typeof window === "undefined" || !slipId) return;
 
-    const url = `${window.location.origin}/feed?slip=${slipId}`;
+    const url = `${window.location.origin}/slips/${slipId}`;
     const text = "Check this FORZA slip 👀";
 
     const navAny = navigator as any;

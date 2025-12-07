@@ -255,8 +255,8 @@ export default function LiveFeedSection() {
 
         const handleShare = () => {
           if (typeof window === "undefined" || !slipId) return;
-          const url = `${window.location.origin}/feed?slip=${slipId}`;
-          const text = "Check this FORZA slip";
+          const url = `${window.location.origin}/slips/${slipId}`;
+          const text = "Check this FORZA slip 👀";
           if ((navigator as any).share) {
             (navigator as any)
               .share({ title: "FORZA slip", text, url })
@@ -264,8 +264,10 @@ export default function LiveFeedSection() {
           } else if ((navigator as any).clipboard?.writeText) {
             (navigator as any).clipboard
               .writeText(url)
-              .then(() => alert("Link copied"))
+              .then(() => alert("Slip link copied to clipboard"))
               .catch(() => {});
+          } else {
+            window.prompt("Copy this link:", url);
           }
         };
 
