@@ -66,3 +66,32 @@ export function subscribeSlipCommentCount(
     onChange(snap.size);
   });
 }
+
+// Toggle save for a slip for a specific user
+export async function toggleSlipSave(slipId: string, user: User) {
+  const saveRef = doc(db, "users", user.uid, "savedSlips", slipId);
+
+  return runTransaction(db, async (tx) => {
+    const saveSnap = await tx.get(saveRef);
+
+    if (saveSnap.exists()) {
+      // user already saved → unsave
+      tx.delete(saveRef);
+      return { saved: false };
+    } else {
+      // add save doc for this user
+      tx.set(saveRef, {
+        slipId,
+        createdAt: serverTimestamp(),
+      });
+      return { saved: true };
+    }
+  });
+}
+
+// Check if the current user has saved this slip
+export async function getUserSavedSlip(slipId: string, user: User) {
+  const saveRef = doc(db, "users", user.uid, "savedSlips", slipId);
+  const saveSnap = await getDoc(saveRef);
+  return saveSnap.exists();
+}

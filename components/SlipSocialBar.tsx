@@ -8,6 +8,8 @@ import {
   toggleSlipLike,
   getUserLikedSlip,
   subscribeSlipCommentCount,
+  toggleSlipSave,
+  getUserSavedSlip,
 } from "@/lib/slipSocial";
 import { doc, onSnapshot } from "firebase/firestore";
 import {
@@ -35,11 +37,19 @@ export function SlipSocialBar({
   const [commentCount, setCommentCount] = useState(initialCommentCount);
   const [hasLiked, setHasLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load whether THIS user has liked this slip
   useEffect(() => {
     if (!user) return;
     getUserLikedSlip(slipId, user).then(setHasLiked).catch(() => {});
+  }, [user, slipId]);
+
+  // Load whether THIS user has saved this slip
+  useEffect(() => {
+    if (!user) return;
+    getUserSavedSlip(slipId, user).then(setHasSaved).catch(() => {});
   }, [user, slipId]);
 
   // Keep like count live from Firestore (in case other users like)
@@ -81,6 +91,25 @@ export function SlipSocialBar({
       setLikeCount((prev) => prev + (nextLiked ? -1 : 1));
     } finally {
       setIsLiking(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user || isSaving) return;
+    setIsSaving(true);
+
+    const nextSaved = !hasSaved;
+    // optimistic UI
+    setHasSaved(nextSaved);
+
+    try {
+      const result = await toggleSlipSave(slipId, user);
+      setHasSaved(result.saved);
+    } catch (e) {
+      // rollback on error
+      setHasSaved((prev) => !prev);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -157,9 +186,16 @@ export function SlipSocialBar({
         <span className="text-[11px] text-slate-400">0</span>
       </button>
 
-      {/* FOLLOW – star icon, no count */}
-      <button className="flex items-center gap-1">
-        <Star className="h-4 w-4" />
+      {/* SAVE – star icon, no count */}
+      <button
+        onClick={handleSave}
+        className="flex items-center gap-1"
+        disabled={isSaving}
+      >
+        <Star
+          weight={hasSaved ? "fill" : "regular"}
+          className={hasSaved ? "h-4 w-4 text-lime-300" : "h-4 w-4"}
+        />
       </button>
     </div>
   );

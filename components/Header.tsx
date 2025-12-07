@@ -1,10 +1,12 @@
 "use client";
 
 import { Star, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <header className="px-4 py-3 border-b border-[#1F1F1F] bg-[#0A0A0A]/90 backdrop-blur-sm flex items-center justify-between">
@@ -20,12 +22,15 @@ export default function Header() {
       {/* Right Icons */}
       <div className="flex items-center gap-4">
         {/* Star = Favorites */}
-        <button
-          onClick={() => router.push("/favorites")}
+        <Link
+          href="/favorites"
           className="p-1.5 rounded-lg hover:bg-[#111111] active:scale-95 transition"
         >
-          <Star size={20} className="stroke-[#AAAAAA]" />
-        </button>
+          <Star
+            size={20}
+            className={pathname === "/favorites" ? "fill-[#a4ff2f] stroke-[#a4ff2f]" : "stroke-[#AAAAAA]"}
+          />
+        </Link>
 
         {/* Search */}
         <button
