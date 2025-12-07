@@ -5,11 +5,18 @@ import SlipActions, { SlipBet } from "@/components/SlipActions";
 
 type RiskLevel = "safe" | "medium" | "high";
 
-type AiSlipResponse = {
-  bets: SlipBet[];
-  totalOdds: number | null;
-  summary: string;
-  strategy: string;
+type AiBet = {
+  homeTeam: string;
+  awayTeam: string;
+  market: string;
+  selection: string;
+  odds: number;
+  kickoffTime: string; // ISO 8601
+};
+
+type AiSlip = {
+  bets: AiBet[];
+  totalOdds: number;
 };
 
 const LEAGUES = [
@@ -29,7 +36,7 @@ export default function AiSlipBuilder() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const [result, setResult] = useState<AiSlipResponse | null>(null);
+  const [aiSlip, setAiSlip] = useState<AiSlip | null>(null);
 
   function toggleLeague(name: string) {
     setSelectedLeagues((prev) =>
@@ -42,19 +49,17 @@ export default function AiSlipBuilder() {
   async function handleGenerate() {
     setLoading(true);
     setErrorMsg(null);
-    setResult(null);
-
-    const body = {
-      targetOdds: targetOdds ? Number(targetOdds) : undefined,
-      risk,
-      leagues: selectedLeagues,
-    };
+    setAiSlip(null);
 
     try {
-      const res = await fetch("/api/slips/ai-build", {
+      const res = await fetch("/api/slips/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          targetOdds: targetOdds ? Number(targetOdds) : null,
+          riskLevel: risk,
+          leagues: selectedLeagues,
+        }),
       });
 
       if (!res.ok) {
@@ -62,17 +67,20 @@ export default function AiSlipBuilder() {
         throw new Error(data.error || "Failed to build slip.");
       }
 
-      const data: AiSlipResponse = await res.json();
-      setResult(data);
+      const data = await res.json();
+      setAiSlip({
+        bets: data.bets ?? [],
+        totalOdds: data.totalOdds ?? 1,
+      });
     } catch (err: any) {
-      console.error("[FORZA] ask-ai-build error:", err);
+      console.error("[FORZA] ask-ai error:", err);
       setErrorMsg(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
   }
 
-  const bets = result?.bets ?? [];
+  const bets = aiSlip?.bets ?? [];
 
   return (
     <div className="space-y-4">
@@ -174,25 +182,17 @@ export default function AiSlipBuilder() {
       )}
 
       {/* Result */}
-      {result && bets.length > 0 && (
+      {aiSlip && bets.length > 0 && (
         <div className="mt-3 space-y-3 rounded-2xl bg-[#0C0C0C] border border-[#202020] px-3 py-3">
           <div className="space-y-1">
             <p className="text-[12px] font-medium text-white">
               FORZA AI slip
             </p>
-            {result.totalOdds && (
-              <p className="text-[11px] text-[#CFCFCF]">
-                Total odds{" "}
-                <span className="text-[var(--forza-accent)] font-semibold">
-                  {result.totalOdds.toFixed(2)}
-                </span>
-              </p>
-            )}
-            {result.summary && (
-              <p className="text-[11px] text-[#A8A8A8]">
-                {result.summary}
-              </p>
-            )}
+            <p className="text-[11px] text-[#CFCFCF]">
+              <span className="text-[var(--forza-accent)] font-semibold">
+                {aiSlip.bets.length}-pick · {aiSlip.totalOdds.toFixed(2)}x
+              </span>
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -208,23 +208,38 @@ export default function AiSlipBuilder() {
                 </p>
                 <p className="text-[#A8A8A8]">
                   {bet.market} • {bet.selection}
-                  {bet.odds != null && (
-                    <span className="text-[var(--forza-accent)]">
-                      {" "}
-                      • @ {bet.odds}
-                    </span>
-                  )}
+                  <span className="text-[var(--forza-accent)]">
+                    {" "}
+                    @ {bet.odds.toFixed(2)}
+                  </span>
                 </p>
+                {bet.kickoffTime && (
+                  <p className="text-[10px] text-[#7A7A7A]">
+                    Kickoff:{" "}
+                    {new Date(bet.kickoffTime).toLocaleString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                  </p>
+                )}
               </div>
             ))}
           </div>
 
           {/* Shared actions: Post / Save / Track */}
           <SlipActions
-            bets={bets}
+            bets={bets.map((b) => ({
+              homeTeam: b.homeTeam,
+              awayTeam: b.awayTeam,
+              market: b.market,
+              selection: b.selection,
+              odds: b.odds,
+            }))}
             bookmaker={null}
             bookingCode={null}
-            rawText={`${result.summary} ${result.strategy}`}
+            rawText={`AI-generated slip with ${bets.length} selections, total odds ${aiSlip.totalOdds.toFixed(2)}`}
             source="ai"
           />
         </div>
