@@ -84,6 +84,45 @@ export function SlipSocialBar({
     }
   };
 
+  const handleShare = () => {
+    if (typeof window === "undefined" || !slipId) return;
+
+    const url = `${window.location.origin}/feed?slip=${slipId}`;
+    const text = "Check this FORZA slip 👀";
+
+    const navAny = navigator as any;
+
+    // ✅ Native share (mobile)
+    if (navAny.share) {
+      navAny
+        .share({
+          title: "FORZA slip",
+          text,
+          url,
+        })
+        .catch(() => {
+          // user canceled – do nothing
+        });
+      return;
+    }
+
+    // ✅ Fallback: copy link
+    if (navAny.clipboard?.writeText) {
+      navAny.clipboard
+        .writeText(url)
+        .then(() => {
+          alert("Slip link copied to clipboard");
+        })
+        .catch(() => {
+          alert("Could not copy link");
+        });
+      return;
+    }
+
+    // Super old browsers: just show prompt
+    window.prompt("Copy this link:", url);
+  };
+
   return (
     <div className="mt-3 flex items-center justify-between px-2 text-xs text-zinc-400">
       {/* LIKE */}
@@ -109,9 +148,13 @@ export function SlipSocialBar({
       </button>
 
       {/* SHARE – just icon + count placeholder (0 for now) */}
-      <button className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={handleShare}
+        className="flex items-center gap-1"
+      >
         <ShareNetwork className="h-4 w-4" />
-        <span>0</span>
+        <span className="text-[11px] text-slate-400">0</span>
       </button>
 
       {/* FOLLOW – star icon, no count */}
