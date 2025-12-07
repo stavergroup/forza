@@ -212,19 +212,36 @@ export default function LiveFeedSection() {
           >
             {/* Top row: avatar + name + time */}
             <div className="flex items-center gap-3">
-              <div
-                className="h-9 w-9 rounded-full flex items-center justify-center text-[11px] font-semibold"
-                style={{
-                  backgroundColor: user?.avatarColor || "#101010",
-                  color: "#ffffff",
-                }}
-              >
-                {avatarLabel}
-              </div>
+              {(() => {
+                const photo =
+                  (isMine ? auth.currentUser?.photoURL : user?.photoURL) || null;
+                
+                return photo ? (
+                  <img
+                    src={photo}
+                    alt="avatar"
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="h-9 w-9 rounded-full flex items-center justify-center text-[11px] font-semibold"
+                    style={{
+                      backgroundColor: user?.avatarColor || "#101010",
+                      color: "#ffffff",
+                    }}
+                  >
+                    {avatarLabel}
+                  </div>
+                );
+              })()}
+
               <div className="flex flex-col">
                 <span className="text-[13px] font-medium text-white">
-                  {displayName}
+                  {isMine
+                    ? auth.currentUser?.displayName || "You"
+                    : user?.displayName || "FORZA user"}
                 </span>
+
                 <div className="flex items-center gap-1 text-[11px] text-[#8A8A8A]">
                   {handle && <span>{handle}</span>}
                   {createdAgo && (
@@ -286,21 +303,6 @@ export default function LiveFeedSection() {
                 ))}
               </div>
 
-              {/* Save / Build slip row inside card (for later wiring) */}
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  className="flex-1 rounded-full border border-[var(--forza-accent)] text-[12px] text-[var(--forza-accent)] py-1.5"
-                >
-                  Save slip
-                </button>
-                <button
-                  type="button"
-                  className="flex-1 rounded-full bg-[var(--forza-accent)] text-[12px] text-black font-semibold py-1.5"
-                >
-                  Build slip
-                </button>
-              </div>
             </div>
 
             {/* Post actions row: Like / Comment / Share / Follow */}
