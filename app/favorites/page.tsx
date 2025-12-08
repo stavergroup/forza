@@ -102,7 +102,7 @@ export default function FavoritesPage() {
 
           rows.push({
             id: savedDoc.id,
-            slip: { id: slipSnap.id, ...(slipSnap.data() as Slip) },
+            slip: { id: slipSnap.id, ...(slipSnap.data() as Omit<Slip, 'id'>) },
           });
         }
 
