@@ -3,10 +3,21 @@
 import Header from "@/components/Header";
 import { useAuth } from "@/components/AuthContext";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { db } from "@/lib/firebaseClient";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+} from "firebase/firestore";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
 
   const displayName =
     user?.displayName ||
@@ -20,6 +31,42 @@ export default function ProfilePage() {
       router.replace("/auth/login");
     } catch (err) {
       console.error("[FORZA] Logout error", err);
+    }
+  };
+
+  const handleBackfill = async () => {
+    if (!user) return;
+    setBackfilling(true);
+    setBackfillMessage(null);
+    try {
+      const slipsRef = collection(db, "slips");
+      const slipsSnap = await getDocs(slipsRef);
+      let updated = 0;
+      for (const slipDoc of slipsSnap.docs) {
+        const slipData = slipDoc.data();
+        if (slipData.userDisplayName) continue;
+        const userId = slipData.userId;
+        if (!userId) continue;
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) continue;
+        const userData = userSnap.data();
+        const displayName = userData.displayName || "FORZA user";
+        const username = userData.handle || "";
+        const photoURL = userData.photoURL || null;
+        await updateDoc(slipDoc.ref, {
+          userDisplayName: displayName,
+          userUsername: username,
+          userPhotoURL: photoURL,
+        });
+        updated++;
+      }
+      setBackfillMessage(`Updated ${updated} slips`);
+    } catch (err) {
+      console.error("[FORZA] backfill error:", err);
+      setBackfillMessage("Backfill failed");
+    } finally {
+      setBackfilling(false);
     }
   };
 
@@ -134,6 +181,19 @@ export default function ProfilePage() {
                 {user?.email || "Email / login"}
               </span>
             </button>
+            <button
+              onClick={handleBackfill}
+              disabled={backfilling}
+              className="w-full flex items-center justify-between px-1 py-1 rounded-lg hover:bg-[#151515] transition disabled:opacity-60"
+            >
+              <span className="text-[#E5E5E5]">Backfill slip owners</span>
+              <span className="text-[11px] text-[#777]">
+                {backfilling ? "Running…" : "Fix old slips"}
+              </span>
+            </button>
+            {backfillMessage && (
+              <p className="text-[10px] text-[#A8A8A8] px-1">{backfillMessage}</p>
+            )}
           </div>
         </section>
 

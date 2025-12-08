@@ -13,10 +13,13 @@ import {
   where,
   orderBy,
   onSnapshot,
+  setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { followUser, unfollowUser, isFollowingUser } from "@/lib/firestoreSocial";
 import CommentsSheet from "@/components/CommentsSheet";
 import { SlipSocialBar } from "@/components/SlipSocialBar";
+import FollowersListModal from "@/components/FollowersListModal";
 
 type UserProfile = {
   displayName?: string;
@@ -88,6 +91,10 @@ export default function PublicProfilePage() {
 
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   const [selectedSlipForComments, setSelectedSlipForComments] = useState<string | null>(null);
 
@@ -152,24 +159,71 @@ export default function PublicProfilePage() {
     isFollowingUser({ followerId: currentUser.uid, followingId: uid }).then(setIsFollowing);
   }, [currentUser, uid]);
 
-  const handleFollowToggle = async () => {
-    if (!currentUser) {
-      router.push("/auth/login");
-      return;
-    }
-    if (currentUser.uid === uid) return;
+  // Subscribe to follow counts
+  useEffect(() => {
+    if (!uid) return;
 
-    setFollowLoading(true);
-    try {
-      if (isFollowing) {
-        await unfollowUser({ followerId: currentUser.uid, followingId: uid });
-        setIsFollowing(false);
-      } else {
-        await followUser({ followerId: currentUser.uid, followingId: uid });
-        setIsFollowing(true);
+    const followsCol = collection(db, "follows");
+
+    // followers of this profile user
+    const followersQ = query(
+      followsCol,
+      where("followingId", "==", uid)
+    );
+
+    // who this profile user is following (for followingCount)
+    const followingQ = query(
+      followsCol,
+      where("followerId", "==", uid)
+    );
+
+    const unsubFollowers = onSnapshot(followersQ, (snap) => {
+      setFollowersCount(snap.size);
+
+      if (currentUser) {
+        const already = snap.docs.some(
+          (d) => d.data().followerId === currentUser.uid
+        );
+        setIsFollowing(already);
       }
-    } catch (error) {
-      console.error("Error toggling follow:", error);
+    });
+
+    const unsubFollowing = onSnapshot(followingQ, (snap) => {
+      setFollowingCount(snap.size);
+    });
+
+    return () => {
+      unsubFollowers();
+      unsubFollowing();
+    };
+  }, [uid, currentUser?.uid]);
+
+  const handleToggleFollow = async () => {
+    if (!currentUser || !uid) return;
+    if (currentUser.uid === uid) return; // cannot follow self
+
+    const followId = `${currentUser.uid}_${uid}`;
+    const followRef = doc(db, "follows", followId);
+
+    try {
+      setFollowLoading(true);
+      if (isFollowing) {
+        // UNFOLLOW
+        setIsFollowing(false);
+        setFollowersCount((c) => Math.max(0, c - 1));
+        await deleteDoc(followRef);
+      } else {
+        // FOLLOW
+        setIsFollowing(true);
+        setFollowersCount((c) => c + 1);
+        await setDoc(followRef, {
+          followerId: currentUser.uid,
+          followingId: uid,
+          createdAt: new Date(),
+        });
+      }
+    } catch (err) {
+      console.error("Error toggling follow:", err);
     } finally {
       setFollowLoading(false);
     }
@@ -222,8 +276,6 @@ export default function PublicProfilePage() {
     ? new Date(userProfile.createdAt.toDate()).toLocaleDateString()
     : "";
 
-  const followersCount = userProfile?.followersCount || 0;
-  const followingCount = userProfile?.followingCount || 0;
   const savedSlipsCount = 0; // Placeholder, as we don't have this field
 
   return (
@@ -259,7 +311,7 @@ export default function PublicProfilePage() {
 
             {currentUser && currentUser.uid !== uid && (
               <button
-                onClick={handleFollowToggle}
+                onClick={handleToggleFollow}
                 disabled={followLoading}
                 className={`px-4 py-2 rounded-full text-[12px] font-semibold transition ${
                   isFollowing
@@ -274,22 +326,29 @@ export default function PublicProfilePage() {
         </section>
 
         {/* Stats Row */}
-        <section className="rounded-2xl bg-[#111111] border border-[#1F1F1F] p-3 flex items-center justify-between text-[11px]">
-          <div className="flex-1 text-center">
-            <p className="text-[13px] text-[#E5E5E5] font-semibold">{followersCount}</p>
-            <p className="text-[#888] mt-0.5">Followers</p>
+        <div className="flex items-center gap-8 mt-4 text-sm">
+          <button
+            className="flex flex-col items-start"
+            onClick={() => setShowFollowersModal(true)}
+          >
+            <span className="font-semibold">{followersCount}</span>
+            <span className="text-[#98A2B3] text-xs">Followers</span>
+          </button>
+
+          <button
+            className="flex flex-col items-start"
+            onClick={() => setShowFollowingModal(true)}
+          >
+            <span className="font-semibold">{followingCount}</span>
+            <span className="text-[#98A2B3] text-xs">Following</span>
+          </button>
+
+          {/* you can keep your "Saved slips" tile as is */}
+          <div className="flex flex-col items-start">
+            <span className="font-semibold">{savedSlipsCount}</span>
+            <span className="text-[#98A2B3] text-xs">Saved slips</span>
           </div>
-          <div className="w-px h-8 bg-[#1F1F1F]" />
-          <div className="flex-1 text-center">
-            <p className="text-[13px] text-[#E5E5E5] font-semibold">{followingCount}</p>
-            <p className="text-[#888] mt-0.5">Following</p>
-          </div>
-          <div className="w-px h-8 bg-[#1F1F1F]" />
-          <div className="flex-1 text-center">
-            <p className="text-[13px] text-[#E5E5E5] font-semibold">{savedSlipsCount}</p>
-            <p className="text-[#888] mt-0.5">Saved slips</p>
-          </div>
-        </section>
+        </div>
 
         {/* Slips Section */}
         <section className="space-y-3">
@@ -453,6 +512,23 @@ export default function PublicProfilePage() {
           <CommentsSheet
             slipId={selectedSlipForComments}
             onClose={() => setSelectedSlipForComments(null)}
+          />
+        )}
+
+        {/* Followers Modals */}
+        {showFollowersModal && (
+          <FollowersListModal
+            userId={uid}
+            type="followers"
+            onClose={() => setShowFollowersModal(false)}
+          />
+        )}
+
+        {showFollowingModal && (
+          <FollowersListModal
+            userId={uid}
+            type="following"
+            onClose={() => setShowFollowingModal(false)}
           />
         )}
       </div>

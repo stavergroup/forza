@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import CommentsSheet from "@/components/CommentsSheet";
 import { SlipSocialBar } from "@/components/SlipSocialBar";
+import { SlipCard } from "@/components/SlipCard";
 
 type SlipBet = {
   homeTeam: string;
@@ -26,8 +27,8 @@ type SlipBet = {
   league?: string | null;
 };
 
-type SlipDoc = {
-  id?: string;
+type Slip = {
+  id: string;
   userId: string;
   bookmaker?: string | null;
   bookingCode?: string | null;
@@ -37,11 +38,14 @@ type SlipDoc = {
   totalOdds?: number | null;
   likeCount?: number;
   commentsCount?: number;
+  userDisplayName?: string;
+  userUsername?: string;
+  userPhotoURL?: string | null;
 };
 
-type SavedSlipDoc = {
-  slipId: string;
-  createdAt?: any;
+type SavedSlip = {
+  id: string;
+  slip: Slip;
 };
 
 function timeAgoFromTimestamp(ts: any): string {
@@ -70,8 +74,7 @@ function initialsFromName(name?: string) {
 export default function FavoritesPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [savedSlips, setSavedSlips] = useState<SavedSlipDoc[]>([]);
-  const [slips, setSlips] = useState<SlipDoc[]>([]);
+  const [savedSlips, setSavedSlips] = useState<SavedSlip[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlipForComments, setSelectedSlipForComments] = useState<string | null>(null);
 
@@ -89,28 +92,21 @@ export default function FavoritesPage() {
     const unsub = onSnapshot(
       q,
       async (snapshot) => {
-        const saved = snapshot.docs.map((d) => ({
-          slipId: d.id,
-          ...d.data(),
-        })) as SavedSlipDoc[];
+        const rows: SavedSlip[] = [];
 
-        setSavedSlips(saved);
+        for (const savedDoc of snapshot.docs) {
+          const savedData = savedDoc.data() as { slipId: string };
+          const slipRef = doc(db, "slips", savedData.slipId);
+          const slipSnap = await getDoc(slipRef);
+          if (!slipSnap.exists()) continue;
 
-        // Fetch full slips
-        const slipPromises = saved.map(async (savedSlip) => {
-          try {
-            const slipSnap = await getDoc(doc(db, "slips", savedSlip.slipId));
-            if (slipSnap.exists()) {
-              return { id: slipSnap.id, ...slipSnap.data() } as SlipDoc;
-            }
-          } catch (err) {
-            console.error("[FORZA] error fetching slip", savedSlip.slipId, err);
-          }
-          return null;
-        });
+          rows.push({
+            id: savedDoc.id,
+            slip: { id: slipSnap.id, ...(slipSnap.data() as Slip) },
+          });
+        }
 
-        const fetchedSlips = (await Promise.all(slipPromises)).filter(Boolean) as SlipDoc[];
-        setSlips(fetchedSlips);
+        setSavedSlips(rows);
         setLoading(false);
       },
       (error) => {
@@ -182,7 +178,7 @@ export default function FavoritesPage() {
         )}
 
         {/* Empty state */}
-        {!loading && slips.length === 0 && (
+        {!loading && savedSlips.length === 0 && (
           <div className="text-center space-y-4 py-8">
             <p className="text-[16px] text-[#E5E5E5] font-semibold">
               No saved slips yet
@@ -200,119 +196,25 @@ export default function FavoritesPage() {
         )}
 
         {/* Slips */}
-        {!loading && slips.length > 0 && (
+        {!loading && savedSlips.length > 0 && (
           <div className="space-y-3">
-            {slips.map((slip) => {
+            {savedSlips.map(({ id, slip }) => {
               if (!slip.bets || slip.bets.length === 0) return null;
 
-              const slipId = slip.id || "";
-              const createdAgo = timeAgoFromTimestamp(slip.createdAt);
-
-              const profileDisplayName = "FORZA user"; // Since we don't have user data here
-              const profileHandle = "";
-              const avatarInitial = profileDisplayName.charAt(0).toUpperCase();
-
-              const picksCount = slip.bets.length;
-
-              const totalOdds =
-                slip.totalOdds && slip.totalOdds > 0
-                  ? slip.totalOdds
-                  : slip.bets.reduce((acc, b) => {
-                      const o =
-                        typeof b.odds === "number" && !Number.isNaN(b.odds)
-                          ? b.odds
-                          : 1;
-                      return acc * o;
-                    }, 1);
-
-              const likesCount = slip.likeCount ?? 0;
-              const commentsCount = slip.commentsCount ?? 0;
+              const author = {
+                id: slip.userId,
+                displayName: slip.userDisplayName || "FORZA user",
+                username: slip.userUsername || "forzauser",
+                photoURL: slip.userPhotoURL || null,
+              };
 
               return (
-                <article
-                  key={slipId}
-                  className="rounded-3xl bg-[#050505] border border-[#151515] p-3.5 space-y-3"
-                >
-                  {/* Top row: avatar + name + time */}
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-[#101010] flex items-center justify-center text-[11px] font-semibold text-white">
-                      {avatarInitial}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="text-[13px] font-medium text-white">
-                        {profileDisplayName}
-                      </span>
-                      <div className="flex items-center gap-1 text-[11px] text-[#8A8A8A]">
-                        {profileHandle && <span>{profileHandle}</span>}
-                        {createdAgo && (
-                          <>
-                            {profileHandle && <span>•</span>}
-                            <span>{createdAgo}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Slip preview */}
-                  <div className="rounded-3xl bg-[#050505] border border-[var(--forza-accent-soft,#27361a)] px-3.5 py-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] text-[#E4E4E4]">
-                        Slip preview
-                      </span>
-                      <span className="text-[11px] text-[var(--forza-accent)] font-semibold">
-                        {picksCount}-pick · {totalOdds.toFixed(2)}x
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 mt-1">
-                      {slip.bets.map((b, idx) => (
-                        <div
-                          key={idx}
-                          className="rounded-2xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2 text-[11px]"
-                        >
-                          <p className="text-white">
-                            {b.homeTeam}{" "}
-                            <span className="text-[#777]">vs</span>{" "}
-                            {b.awayTeam}
-                          </p>
-                          <p className="text-[#A8A8A8]">
-                            {b.market} • {b.selection}
-                            {typeof b.odds === "number" &&
-                              !Number.isNaN(b.odds) && (
-                                <span className="text-[var(--forza-accent)]">
-                                  {" "}
-                                  @ {b.odds.toFixed(2)}
-                                </span>
-                              )}
-                          </p>
-                          {b.kickoffTime && (
-                            <p className="text-[10px] text-[#7A7A7A] mt-[2px]">
-                              Kickoff:{" "}
-                              {new Date(
-                                b.kickoffTime
-                              ).toLocaleString(undefined, {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                day: "2-digit",
-                                month: "short",
-                              })}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <SlipSocialBar
-                    slipId={slipId}
-                    initialLikeCount={likesCount}
-                    initialCommentCount={commentsCount}
-                    onOpenComments={() => setSelectedSlipForComments(slipId)}
-                  />
-
-                </article>
+                <SlipCard
+                  key={id}
+                  slip={slip}
+                  author={author}
+                  onOpenComments={setSelectedSlipForComments}
+                />
               );
             })}
           </div>

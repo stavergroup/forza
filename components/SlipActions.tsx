@@ -7,6 +7,8 @@ import {
   addDoc,
   collection,
   serverTimestamp,
+  doc,
+  getDoc,
 } from "firebase/firestore";
 
 export type SlipBet = {
@@ -61,6 +63,10 @@ export default function SlipActions({
       setSaveMessage(null);
       setErrorMsg(null);
 
+      // Fetch user profile to get handle
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const userData = userDoc.exists() ? userDoc.data() : {};
+
       const slipRef = await addDoc(collection(db, "slips"), {
         userId: user.uid,
         bookmaker,
@@ -78,6 +84,9 @@ export default function SlipActions({
         rawText,
         tracking: mode === "track" || mode === "post",
         createdAt: serverTimestamp(),
+        userDisplayName: user.displayName || "FORZA user",
+        userUsername: userData.handle || "",
+        userPhotoURL: user.photoURL || null,
       });
 
       if (mode === "post") {

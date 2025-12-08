@@ -40,6 +40,17 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
+    match /follows/{followId} {
+      allow read: if request.auth != null; // anyone logged in can see followers/following
+
+      // user can create or delete a follow where he is the follower
+      allow create: if request.auth != null
+                    && request.resource.data.followerId == request.auth.uid;
+
+      allow delete: if request.auth != null
+                    && resource.data.followerId == request.auth.uid;
+    }
+
     // User follows - users can only modify their own follows
     match /userFollows/{followId} {
       allow read: if true;
