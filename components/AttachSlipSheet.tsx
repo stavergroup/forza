@@ -83,30 +83,46 @@ export default function AttachSlipSheet({ open, onClose, onSelect }: Props) {
 
     setSaving(true);
     try {
-      const totalOdds = result.bets.reduce((acc: number, bet: any) => acc * (bet.odd || bet.odds || 1), 1);
+      const totalOdds = result.bets.reduce((acc: number, bet: any) => {
+        const odd = bet.odd || bet.odds || 1;
+        return acc * (typeof odd === 'number' && !isNaN(odd) ? odd : 1);
+      }, 1);
 
-      const selections = result.bets.map((bet: any) => ({
-        homeTeam: bet.homeTeam,
-        awayTeam: bet.awayTeam,
-        market: bet.market,
-        pick: bet.pick || bet.selection,
-        odd: bet.odd || bet.odds,
-        kickoffTime: bet.kickoffTime,
-      }));
+      const selections = result.bets
+        .filter((bet: any) => bet.homeTeam && bet.awayTeam && bet.market && (bet.pick || bet.selection))
+        .map((bet: any) => ({
+          homeTeam: bet.homeTeam,
+          awayTeam: bet.awayTeam,
+          market: bet.market,
+          pick: bet.pick || bet.selection,
+          odd: bet.odd || bet.odds || 1,
+          kickoffTime: bet.kickoffTime,
+        }));
 
-      const slipRef = await addDoc(collection(db, "slips"), {
+      if (selections.length === 0) {
+        setErrorMsg("No valid bets found in the slip.");
+        return;
+      }
+
+      const validTotalOdds = typeof totalOdds === 'number' && !isNaN(totalOdds) ? totalOdds : 1;
+
+      const slipData: any = {
         userId: user.uid,
-        totalOdds,
+        totalOdds: validTotalOdds,
         selections,
-        bookmaker: result.bookmaker,
-        bookingCode: result.bookingCode,
         source: "image",
-        rawText: result.rawText,
         createdAt: serverTimestamp(),
         userDisplayName: user.displayName || "FORZA user",
         userUsername: "",
         userPhotoURL: user.photoURL || null,
-      });
+      };
+
+      // Only add optional fields if they exist
+      if (result.bookmaker) slipData.bookmaker = result.bookmaker;
+      if (result.bookingCode) slipData.bookingCode = result.bookingCode;
+      if (result.rawText) slipData.rawText = result.rawText;
+
+      const slipRef = await addDoc(collection(db, "slips"), slipData);
 
       const attachedSlip: Slip = {
         id: slipRef.id,
