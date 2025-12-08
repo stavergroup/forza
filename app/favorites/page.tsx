@@ -17,12 +17,12 @@ import CommentsSheet from "@/components/CommentsSheet";
 import { SlipSocialBar } from "@/components/SlipSocialBar";
 import { SlipCard } from "@/components/SlipCard";
 
-type SlipBet = {
+type SlipSelection = {
   homeTeam: string;
   awayTeam: string;
   market: string;
-  selection: string;
-  odds?: number | null;
+  pick: string;
+  odd?: number | null;
   kickoffTime?: string | null;
   league?: string | null;
 };
@@ -30,12 +30,10 @@ type SlipBet = {
 type Slip = {
   id: string;
   userId: string;
-  bookmaker?: string | null;
-  bookingCode?: string | null;
-  bets: SlipBet[];
+  totalOdds?: number | null;
+  selections: SlipSelection[];
   source?: "image" | "import" | "ai" | string;
   createdAt?: any;
-  totalOdds?: number | null;
   likeCount?: number;
   commentsCount?: number;
   userDisplayName?: string;
@@ -199,7 +197,7 @@ export default function FavoritesPage() {
         {!loading && savedSlips.length > 0 && (
           <div className="space-y-3">
             {savedSlips.map(({ id, slip }) => {
-              if (!slip.bets || slip.bets.length === 0) return null;
+              if (!slip.selections || slip.selections.length === 0) return null;
 
               const author = {
                 id: slip.userId,

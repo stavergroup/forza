@@ -22,25 +22,23 @@ import { SlipSocialBar } from "./SlipSocialBar";
 import { SlipCard } from "./SlipCard";
 import Link from "next/link";
 
-type SlipBet = {
+type SlipSelection = {
   homeTeam: string;
   awayTeam: string;
   market: string;
-  selection: string;
-  odds?: number | null;
+  pick: string;
+  odd?: number | null;
   kickoffTime?: string | null;
   league?: string | null;
 };
 
 type SlipDoc = {
-  id?: string;
+  id: string;
   userId: string;
-  bookmaker?: string | null;
-  bookingCode?: string | null;
-  bets: SlipBet[];
+  totalOdds?: number | null;
+  selections: SlipSelection[];
   source?: "image" | "import" | "ai" | string;
   createdAt?: any;
-  totalOdds?: number | null;
   likeCount?: number;
   commentsCount?: number;
 };
@@ -48,7 +46,14 @@ type SlipDoc = {
 type PostDoc = {
   id: string;
   userId: string;
-  slipId: string;
+  text?: string; // New posts have text
+  slipId?: string; // Old posts have slipId
+  type?: string; // Old posts have type: "slip"
+  attachedSlipId?: string | null; // New posts have attachedSlipId
+  attachedSlipSummary?: {
+    totalOdds: number;
+    totalPicks: number;
+  } | null;
   createdAt?: any;
 };
 
@@ -61,7 +66,7 @@ type UserProfile = {
 
 type FeedItem = {
   post: PostDoc;
-  slip: SlipDoc | null;
+  attachedSlip: SlipDoc | null;
   user: UserProfile | null;
 };
 
@@ -118,41 +123,47 @@ export default function LiveFeedSection() {
             return {
               id: d.id,
               userId: data.userId as string,
-              slipId: data.slipId as string,
+              text: data.text || (data.type === "slip" ? "Posted a slip" : ""), // Backward compatibility
+              slipId: data.slipId, // Keep for backward compatibility
+              type: data.type, // Keep for backward compatibility
+              attachedSlipId: data.attachedSlipId || data.slipId || null, // Use attachedSlipId or fallback to slipId
+              attachedSlipSummary: data.attachedSlipSummary || null,
               createdAt: data.createdAt,
             };
           });
 
           const enriched = await Promise.all(
             basePosts.map(async (post) => {
-              let slip: any = null;
+              let attachedSlip: any = null;
               let user: any = null;
 
-              if (!post.slipId || !post.userId) {
-                return { post, slip: null, user: null };
+              if (!post.userId) {
+                return { post, attachedSlip: null, user: null };
               }
 
               try {
-                const [slipSnap, userSnap] = await Promise.all([
-                  getDoc(doc(db, "slips", post.slipId)),
-                  getDoc(doc(db, "users", post.userId)),
-                ]);
-
-                if (slipSnap.exists()) {
-                  const data = slipSnap.data();
-                  if (data) {
-                    slip = { id: slipSnap.id, ...data };
-                  }
+                const promises = [getDoc(doc(db, "users", post.userId))];
+                if (post.attachedSlipId) {
+                  promises.push(getDoc(doc(db, "slips", post.attachedSlipId)));
                 }
+
+                const [userSnap, slipSnap] = await Promise.all(promises);
 
                 if (userSnap.exists()) {
                   user = userSnap.data();
+                }
+
+                if (slipSnap && slipSnap.exists()) {
+                  const data = slipSnap.data();
+                  if (data) {
+                    attachedSlip = { id: slipSnap.id, ...data } as SlipDoc;
+                  }
                 }
               } catch (err) {
                 console.error("[FORZA] error loading slip/user for post", post.id, err);
               }
 
-              return { post, slip, user };
+              return { post, attachedSlip, user };
             })
           );
 
@@ -176,10 +187,10 @@ export default function LiveFeedSection() {
     return (
       <section className="mt-6 space-y-2">
         <h2 className="text-[13px] font-medium text-[#EDEDED]">
-          Latest slips (live)
+          Latest posts (live)
         </h2>
         <p className="text-[12px] text-[#9F9F9F]">
-          Loading latest community slips…
+          Loading latest posts…
         </p>
       </section>
     );
@@ -189,10 +200,10 @@ export default function LiveFeedSection() {
     return (
       <section className="mt-6 space-y-2">
         <h2 className="text-[13px] font-medium text-[#EDEDED]">
-          Latest slips (live)
+          Latest posts (live)
         </h2>
         <p className="text-[12px] text-[#9F9F9F]">
-          No community slips yet. Post from the Build Slip page.
+          No posts yet. Share your football takes and attach slips!
         </p>
       </section>
     );
@@ -201,13 +212,10 @@ export default function LiveFeedSection() {
   return (
     <section className="mt-6 space-y-3">
       <h2 className="text-[13px] font-medium text-[#EDEDED]">
-        Latest slips (live)
+        Latest posts (live)
       </h2>
 
-      {items.map(({ post, slip, user }) => {
-        if (!slip || !slip.bets || slip.bets.length === 0) return null;
-
-        const slipId = slip.id || post.slipId;
+      {items.map(({ post, attachedSlip, user }) => {
         const isMine = currentUser && post.userId === currentUser.uid;
 
         const author = isMine
@@ -224,13 +232,63 @@ export default function LiveFeedSection() {
               photoURL: user?.photoURL || null,
             };
 
+        // Handle old slip posts (backward compatibility)
+        if (post.type === "slip" && attachedSlip) {
+          return (
+            <SlipCard
+              key={post.id}
+              slip={attachedSlip}
+              author={author}
+              onOpenComments={setSelectedSlipForComments}
+            />
+          );
+        }
+
+        // Handle new text posts
+        if (!post.text) return null; // Skip posts without text
+
         return (
-          <SlipCard
-            key={post.id}
-            slip={{ ...slip, id: slipId }}
-            author={author}
-            onOpenComments={setSelectedSlipForComments}
-          />
+          <article key={post.id} className="rounded-3xl bg-[#050505] border border-[#151515] p-4 space-y-3">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-[#1f262f] flex items-center justify-center text-sm font-semibold overflow-hidden">
+                {author.photoURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={author.photoURL}
+                    alt={author.displayName}
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <span>{author.displayName.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[15px] font-semibold text-white">
+                  {author.displayName}
+                </span>
+                <span className="text-xs text-[#98A2B3]">
+                  @{author.username}
+                </span>
+              </div>
+            </div>
+
+            {/* Post text */}
+            <p className="text-white text-sm leading-relaxed">
+              {post.text}
+            </p>
+
+            {/* Attached slip */}
+            {attachedSlip && attachedSlip.selections && attachedSlip.selections.length > 0 && (
+              <div className="mt-3">
+                <SlipCard
+                  slip={attachedSlip}
+                  author={author}
+                  onOpenComments={setSelectedSlipForComments}
+                />
+              </div>
+            )}
+          </article>
         );
       })}
 

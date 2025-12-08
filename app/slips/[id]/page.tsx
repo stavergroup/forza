@@ -6,12 +6,12 @@ import { db } from "@/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
 import { ShareNetwork } from "@phosphor-icons/react";
 
-type SlipBet = {
+type SlipSelection = {
   homeTeam: string;
   awayTeam: string;
   market: string;
-  selection: string;
-  odds?: number | null;
+  pick: string;
+  odd?: number | null;
   kickoffTime?: string | null;
   league?: string | null;
 };
@@ -20,8 +20,8 @@ type SlipDoc = {
   userId: string;
   bookmaker?: string | null;
   bookingCode?: string | null;
-  bets: SlipBet[];
   totalOdds?: number | null;
+  selections: SlipSelection[];
   createdAt?: any;
   source?: string;
 };
@@ -184,8 +184,8 @@ export default function SlipPage() {
 
   const totalOdds = slip.totalOdds && slip.totalOdds > 0
     ? slip.totalOdds
-    : slip.bets.reduce((acc, b) => {
-        const o = typeof b.odds === "number" && !Number.isNaN(b.odds) ? b.odds : 1;
+    : slip.selections.reduce((acc, b) => {
+        const o = typeof b.odd === "number" && !Number.isNaN(b.odd) ? b.odd : 1;
         return acc * o;
       }, 1);
 
@@ -254,7 +254,7 @@ export default function SlipPage() {
         </div>
 
         <div className="space-y-3">
-          {slip.bets.map((b, idx) => (
+          {slip.selections.map((b, idx) => (
             <div
               key={idx}
               className="bg-[#0B0B0B] border border-[#1F1F1F] rounded-2xl p-3"
@@ -263,9 +263,9 @@ export default function SlipPage() {
                 {b.homeTeam} <span className="text-[#777]">vs</span> {b.awayTeam}
               </p>
               <p className="text-[#A8A8A8] text-[12px]">
-                {b.market} • {b.selection}
-                {typeof b.odds === "number" && !Number.isNaN(b.odds) && (
-                  <span className="text-[#a4ff2f]"> @ {b.odds.toFixed(2)}</span>
+                {b.market} • {b.pick}
+                {typeof b.odd === "number" && !Number.isNaN(b.odd) && (
+                  <span className="text-[#a4ff2f]"> @ {b.odd.toFixed(2)}</span>
                 )}
               </p>
               {b.kickoffTime && (

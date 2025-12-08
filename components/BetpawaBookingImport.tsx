@@ -154,8 +154,8 @@ export default function BetpawaBookingImport() {
                 homeTeam: parts[0]?.trim() || sel.match,
                 awayTeam: parts[1]?.trim() || "",
                 market: sel.marketGroup || "Unknown",
-                selection: sel.pick,
-                odds: sel.odds,
+                pick: sel.pick,
+                odd: sel.odds,
               };
             }) as SlipBet[]}
             bookmaker="BetPawa Tanzania"

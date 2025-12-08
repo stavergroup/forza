@@ -235,8 +235,8 @@ export default function AiSlipBuilder() {
               homeTeam: b.homeTeam,
               awayTeam: b.awayTeam,
               market: b.market,
-              selection: b.selection,
-              odds: b.odds,
+              pick: b.selection,
+              odd: b.odds,
               kickoffTime: b.kickoffTime ?? null,
               league: (b as any).league ?? null,
             }))}

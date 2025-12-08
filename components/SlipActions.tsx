@@ -15,8 +15,8 @@ export type SlipBet = {
   homeTeam: string;
   awayTeam: string;
   market: string;
-  selection: string;
-  odds: number | null;
+  pick: string;
+  odd: number | null;
   kickoffTime?: string | null;
   league?: string | null;
 };
@@ -67,18 +67,18 @@ export default function SlipActions({
       const userDoc = await getDoc(doc(db, "users", user.uid));
       const userData = userDoc.exists() ? userDoc.data() : {};
 
+      const totalOdds = bets.reduce((acc, b) => acc * (b.odd || 1), 1);
+
       const slipRef = await addDoc(collection(db, "slips"), {
         userId: user.uid,
-        bookmaker,
-        bookingCode,
-        bets: bets.map((b) => ({
+        totalOdds,
+        selections: bets.map((b) => ({
           homeTeam: b.homeTeam,
           awayTeam: b.awayTeam,
           market: b.market,
-          selection: b.selection,
-          odds: b.odds ?? null,
+          pick: b.pick,
+          odd: b.odd ?? null,
           kickoffTime: b.kickoffTime ?? null,
-          league: b.league ?? null,
         })),
         source,
         rawText,

@@ -30,12 +30,12 @@ type UserProfile = {
   followingCount?: number;
 };
 
-type SlipBet = {
+type SlipSelection = {
   homeTeam: string;
   awayTeam: string;
   market: string;
-  selection: string;
-  odds?: number | null;
+  pick: string;
+  odd?: number | null;
   kickoffTime?: string | null;
   league?: string | null;
 };
@@ -43,12 +43,10 @@ type SlipBet = {
 type SlipDoc = {
   id?: string;
   userId: string;
-  bookmaker?: string | null;
-  bookingCode?: string | null;
-  bets: SlipBet[];
+  totalOdds?: number | null;
+  selections: SlipSelection[];
   source?: "image" | "import" | "ai" | string;
   createdAt?: any;
-  totalOdds?: number | null;
   likeCount?: number;
   commentsCount?: number;
 };
@@ -387,7 +385,7 @@ export default function PublicProfilePage() {
           ) : (
             <div className="space-y-3">
               {slips.map((slip) => {
-                if (!slip.bets || slip.bets.length === 0) return null;
+                if (!slip.selections || slip.selections.length === 0) return null;
 
                 const slipId = slip.id || "";
                 const createdAgo = timeAgoFromTimestamp(slip.createdAt);
@@ -396,15 +394,15 @@ export default function PublicProfilePage() {
                 const profileHandle = handle;
                 const avatarPhoto = userProfile?.photoURL;
 
-                const picksCount = slip.bets.length;
+                const picksCount = slip.selections.length;
 
                 const totalOdds =
                   slip.totalOdds && slip.totalOdds > 0
                     ? slip.totalOdds
-                    : slip.bets.reduce((acc, b) => {
+                    : slip.selections.reduce((acc, b) => {
                         const o =
-                          typeof b.odds === "number" && !Number.isNaN(b.odds)
-                            ? b.odds
+                          typeof b.odd === "number" && !Number.isNaN(b.odd)
+                            ? b.odd
                             : 1;
                         return acc * o;
                       }, 1);
@@ -455,7 +453,7 @@ export default function PublicProfilePage() {
                       </div>
 
                       <div className="space-y-2 mt-1">
-                        {slip.bets.map((b, idx) => (
+                        {slip.selections.map((b, idx) => (
                           <div
                             key={idx}
                             className="rounded-2xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2 text-[11px]"
@@ -466,12 +464,12 @@ export default function PublicProfilePage() {
                               {b.awayTeam}
                             </p>
                             <p className="text-[#A8A8A8]">
-                              {b.market} • {b.selection}
-                              {typeof b.odds === "number" &&
-                                !Number.isNaN(b.odds) && (
+                              {b.market} • {b.pick}
+                              {typeof b.odd === "number" &&
+                                !Number.isNaN(b.odd) && (
                                   <span className="text-[var(--forza-accent)]">
                                     {" "}
-                                    @ {b.odds.toFixed(2)}
+                                    @ {b.odd.toFixed(2)}
                                   </span>
                                 )}
                             </p>

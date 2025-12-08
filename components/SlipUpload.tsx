@@ -128,11 +128,11 @@ export default function SlipUpload() {
                   {bet.awayTeam}
                 </p>
                 <p className="text-[#A8A8A8]">
-                  {bet.market} • {bet.selection}
-                  {bet.odds != null && (
+                  {bet.market} • {bet.pick}
+                  {bet.odd != null && (
                     <span className="text-[var(--forza-accent)]">
                       {" "}
-                      • @ {bet.odds}
+                      • @ {bet.odd}
                     </span>
                   )}
                 </p>
