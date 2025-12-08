@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import BottomNav from "./BottomNav";
+import LoadingSkeleton from "./LoadingSkeleton";
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,11 +23,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
 
   // While checking auth, show loader
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-[#B5B5B5] text-sm">
-        Checking session…
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   // If not logged in and on non-auth route, we are redirecting; render nothing

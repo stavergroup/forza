@@ -21,6 +21,7 @@ import CommentsSheet from "./CommentsSheet";
 import { SlipSocialBar } from "./SlipSocialBar";
 import { SlipCard } from "./SlipCard";
 import Link from "next/link";
+import LoadingSkeleton from "./LoadingSkeleton";
 
 type SlipSelection = {
   homeTeam: string;
@@ -184,16 +185,7 @@ export default function LiveFeedSection() {
   }, []); // 👈 IMPORTANT: no currentUser dependency
 
   if (loading) {
-    return (
-      <section className="mt-6 space-y-2">
-        <h2 className="text-[13px] font-medium text-[#EDEDED]">
-          Latest posts (live)
-        </h2>
-        <p className="text-[12px] text-[#9F9F9F]">
-          Loading latest posts…
-        </p>
-      </section>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (!items.length) {
