@@ -103,36 +103,37 @@ export default function SearchOverlay({ open, context, onClose }: SearchOverlayP
           }));
           setResults(matches);
         } else if (context === "chat") {
-          // Search conversations and groups
-          const [conversationsSnap, groupsSnap] = await Promise.all([
-            getDocs(query(collection(db, "conversations"), limit(10))),
-            getDocs(query(collection(db, "groups"), limit(10))),
+          // Search chatRooms and users for DMs
+          const [roomsSnap, usersSnap] = await Promise.all([
+            getDocs(query(collection(db, "chatRooms"), limit(10))),
+            getDocs(query(collection(db, "users"), limit(10))),
           ]);
 
           const chats: ChatResult[] = [];
 
-          // Conversations (DMs)
-          conversationsSnap.docs.forEach(doc => {
-            const data = doc.data();
-            if (data.participantUsernames?.some((u: string) => u.toLowerCase().includes(searchTerm))) {
-              chats.push({
-                id: doc.id,
-                name: data.participantUsernames?.join(", ") || "DM",
-                type: "dm",
-                lastMessageSnippet: data.lastMessageSnippet,
-              });
-            }
-          });
-
-          // Groups
-          groupsSnap.docs.forEach(doc => {
+          // Rooms
+          roomsSnap.docs.forEach(doc => {
             const data = doc.data();
             if (data.name?.toLowerCase().includes(searchTerm)) {
               chats.push({
                 id: doc.id,
                 name: data.name,
                 type: "group",
-                memberCount: data.memberCount,
+                lastMessageSnippet: data.lastMessage,
+                memberCount: data.messageCount || 0,
+              });
+            }
+          });
+
+          // Users for DMs
+          usersSnap.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.displayName?.toLowerCase().includes(searchTerm) || data.handle?.toLowerCase().includes(searchTerm)) {
+              chats.push({
+                id: doc.id,
+                name: data.displayName || data.handle || "User",
+                type: "dm",
+                lastMessageSnippet: "",
               });
             }
           });
