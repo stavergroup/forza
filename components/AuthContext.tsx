@@ -25,11 +25,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         import("firebase/auth").then(({ onAuthStateChanged, signOut }) => {
           import("firebase/firestore").then(({ setDoc, getDoc, doc, serverTimestamp }) => {
             const unsub = onAuthStateChanged(auth, async (firebaseUser: any) => {
+              console.log("[FORZA] Auth state changed:", firebaseUser ? `User: ${firebaseUser.uid}` : "No user");
               setUser(firebaseUser);
               setLoading(false);
 
               if (firebaseUser) {
                 try {
+                  console.log("[FORZA] Upserting user profile for", firebaseUser.uid);
                   const userRef = doc(db, "users", firebaseUser.uid);
                   const existingSnap = await getDoc(userRef);
                   const existing = existingSnap.exists() ? existingSnap.data() : null;
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     createdAt: existing?.createdAt ?? serverTimestamp()
                   };
                   await setDoc(userRef, data, { merge: true });
+                  console.log("[FORZA] User profile upserted successfully");
                 } catch (err) {
                   console.error("[FORZA] Failed to upsert user profile", err);
                 }

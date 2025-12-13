@@ -20,8 +20,8 @@ import { listenRoomTyping, setTypingForRoom } from "@/lib/chat";
 
 type Message = {
   id: string;
-  uid: string;
-  username: string;
+  senderId: string;
+  senderName: string;
   avatar: string;
   text: string;
   createdAt: Date;
@@ -36,19 +36,21 @@ export default function RoomPage() {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!roomId) return;
-    const roomRef = doc(db, "chatRooms", roomId as string);
+    if (!roomId || !user) return;
+    const roomRef = doc(db, "rooms", roomId as string);
     const unsubscribe = onSnapshot(roomRef, (doc) => {
       if (doc.exists()) {
         setRoom({ id: doc.id, ...doc.data() });
+      } else {
+        setRoom(null);
       }
     });
     return unsubscribe;
-  }, [roomId]);
+  }, [roomId, user]);
 
   useEffect(() => {
-    if (!roomId) return;
-    const messagesRef = collection(db, "chatRooms", roomId as string, "messages");
+    if (!roomId || !user) return;
+    const messagesRef = collection(db, "rooms", roomId as string, "messages");
     const q = query(messagesRef, orderBy("createdAt"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const messagesData: Message[] = [];
@@ -56,17 +58,17 @@ export default function RoomPage() {
         const data = doc.data();
         messagesData.push({
           id: doc.id,
-          uid: data.uid,
-          username: data.username,
+          senderId: data.senderId,
+          senderName: data.senderName,
           avatar: data.avatarUrl || "",
           text: data.text,
-          createdAt: data.createdAt.toDate(),
+          createdAt: data.createdAt?.toDate() || new Date(),
         });
       });
       setMessages(messagesData);
     });
     return unsubscribe;
-  }, [roomId]);
+  }, [roomId, user]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -78,15 +80,15 @@ export default function RoomPage() {
 
   const sendMessage = async () => {
     if (!input.trim() || !user || !roomId) return;
-    const messagesRef = collection(db, "chatRooms", roomId as string, "messages");
+    const messagesRef = collection(db, "rooms", roomId as string, "messages");
     await addDoc(messagesRef, {
-      uid: user.uid,
-      username: user.displayName || "Anonymous",
-      avatar: user.photoURL || "",
+      senderId: user.uid,
+      senderName: user.displayName || "Anonymous",
+      avatarUrl: user.photoURL || "",
       text: input,
       createdAt: serverTimestamp(),
     });
-    const roomRef = doc(db, "chatRooms", roomId as string);
+    const roomRef = doc(db, "rooms", roomId as string);
     await updateDoc(roomRef, {
       lastMessage: input,
       lastMessageAt: serverTimestamp(),
@@ -127,14 +129,14 @@ export default function RoomPage() {
             <article key={message.id} className="flex items-start gap-3">
               <div className="h-8 w-8 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[8px] text-[var(--forza-accent)] font-semibold">
                 {message.avatar ? (
-                  <img src={message.avatar} alt={message.username} className="h-full w-full rounded-full" />
+                  <img src={message.avatar} alt={message.senderName} className="h-full w-full rounded-full" />
                 ) : (
-                  message.username[0].toUpperCase()
+                  message.senderName[0].toUpperCase()
                 )}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-[11px] text-[#E5E5E5] font-semibold">{message.username}</p>
+                  <p className="text-[11px] text-[#E5E5E5] font-semibold">{message.senderName}</p>
                   <span className="text-[9px] text-[#777]">{formatTime(message.createdAt)}</span>
                 </div>
                 <p className="text-[11px] text-[#888] mt-0.5">{message.text}</p>

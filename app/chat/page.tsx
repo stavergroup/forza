@@ -1,268 +1,258 @@
-"use client";
+// KILO PROMPT – app/chat/page.tsx
 
-import Header from "@/components/Header";
-import { useState, useEffect } from "react";
-import { db } from "@/lib/firebaseClient";
-import { collection, query, orderBy, onSnapshot, where } from "firebase/firestore";
-import { useAuth } from "@/components/AuthContext";
-import { setUserOnline, makeDmId } from "@/lib/chat";
-import { useRouter } from "next/navigation";
+'use client';
 
-type ChatRoom = {
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  addDoc,
+  collection,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
+import { useAuth } from '@/components/AuthContext';
+import { ChatDots, UsersThree } from '@phosphor-icons/react';
+
+type Room = {
   id: string;
   name: string;
-  lastMessage: string;
-  lastMessageAt: Date;
-  messageCount: number;
-  unread?: number;
-  badge?: string;
-  isHot?: boolean;
+  createdBy: string;
+  lastMessage?: string;
+  lastMessageAt?: Date;
 };
 
-type DM = {
+type DMThread = {
   id: string;
-  otherUid: string;
-  username: string;
-  lastMessage: string;
-  lastMessageAt: Date;
+  participantIds: string[];
+  otherUserName: string;
+  otherUserAvatar?: string;
+  lastMessage?: string;
+  lastMessageAt?: Date;
 };
 
 export default function ChatPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const router = useRouter();
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const [dms, setDms] = useState<DM[]>([]);
-  const [activeTab, setActiveTab] = useState<"rooms" | "dms">("rooms");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'dms' ? 'dms' : 'rooms';
 
+  const [activeTab, setActiveTab] = useState<'rooms' | 'dms'>(initialTab);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [dmThreads, setDmThreads] = useState<DMThread[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [loadingDMs, setLoadingDMs] = useState(true);
+
+  // keep URL in sync with tab
   useEffect(() => {
-    console.log("[DEBUG] ChatPage useEffect - user:", user);
-    if (!user) {
-      console.log("[DEBUG] No user, skipping subscriptions");
-      return;
-    }
-    console.log("[DEBUG] User authenticated, setting up subscriptions");
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.set('tab', activeTab);
+    router.replace(`/chat?${params.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
-    // Set user online
-    setUserOnline(user.uid, user.displayName || "Anonymous");
-
-    // Subscribe to rooms
-    const q = query(collection(db, "chatRooms"), orderBy("lastMessageAt", "desc"));
-    console.log("[DEBUG] Setting up rooms subscription");
-    const unsubscribeRooms = onSnapshot(q, (querySnapshot) => {
-      console.log("[DEBUG] Rooms snapshot received, docs count:", querySnapshot.size);
-      const roomsData: ChatRoom[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        roomsData.push({
-          id: doc.id,
-          name: data.name,
-          lastMessage: data.lastMessage,
-          lastMessageAt: data.lastMessageAt.toDate(),
-          messageCount: data.messageCount,
-          badge: data.badge,
-          isHot: data.isHot,
-        });
-      });
-      setRooms(roomsData);
-    }, (error) => {
-      console.error("[DEBUG] Rooms subscription error:", error);
-    });
-
-    // Subscribe to DMs
-    const dmQ = query(collection(db, "directMessages"), where("users", "array-contains", user.uid));
-    console.log("[DEBUG] Setting up DMs subscription");
-    const unsubscribeDms = onSnapshot(dmQ, (querySnapshot) => {
-      console.log("[DEBUG] DMs snapshot received, docs count:", querySnapshot.size);
-      const dmsData: DM[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const otherUid = data.users.find((u: string) => u !== user.uid);
-        dmsData.push({
-          id: doc.id,
-          otherUid,
-          username: data.lastSenderId === user.uid ? "You" : "Other", // Placeholder, need to fetch username
-          lastMessage: data.lastMessage,
-          lastMessageAt: data.lastMessageAt.toDate(),
-        });
-      });
-      setDms(dmsData);
-    }, (error) => {
-      console.error("[DEBUG] DMs subscription error:", error);
-    });
-
-    return () => {
-      console.log("[DEBUG] Cleaning up subscriptions");
-      unsubscribeRooms();
-      unsubscribeDms();
-    };
-  }, [user]);
+  // Subscribe to rooms
   useEffect(() => {
     if (!user) return;
-    // Set user online
-    setUserOnline(user.uid, user.displayName || "Anonymous");
 
-    // Subscribe to rooms
-    const q = query(collection(db, "chatRooms"), orderBy("lastMessageAt", "desc"));
-    const unsubscribeRooms = onSnapshot(q, (querySnapshot) => {
-      const roomsData: ChatRoom[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        roomsData.push({
-          id: doc.id,
-          name: data.name,
-          lastMessage: data.lastMessage,
-          lastMessageAt: data.lastMessageAt.toDate(),
-          messageCount: data.messageCount,
-          badge: data.badge,
-          isHot: data.isHot,
-        });
+    const roomsRef = collection(db, 'rooms');
+    const q = query(roomsRef, orderBy('lastMessageAt', 'desc'));
+
+    const unsub = onSnapshot(q, snapshot => {
+      const next: Room[] = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          name: data.name ?? 'Room',
+          createdBy: data.createdBy,
+          lastMessage: data.lastMessage ?? '',
+          lastMessageAt: data.lastMessageAt?.toDate?.() ?? undefined,
+        };
       });
-      setRooms(roomsData);
+      setRooms(next);
+      setLoadingRooms(false);
     });
 
-    // Subscribe to DMs
-    const dmQ = query(collection(db, "directMessages"), where("users", "array-contains", user.uid));
-    const unsubscribeDms = onSnapshot(dmQ, (querySnapshot) => {
-      const dmsData: DM[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const otherUid = data.users.find((u: string) => u !== user.uid);
-        dmsData.push({
-          id: doc.id,
-          otherUid,
-          username: data.lastSenderId === user.uid ? "You" : "Other", // Placeholder, need to fetch username
-          lastMessage: data.lastMessage,
-          lastMessageAt: data.lastMessageAt.toDate(),
-        });
-      });
-      setDms(dmsData);
-    });
-
-    return () => {
-      unsubscribeRooms();
-      unsubscribeDms();
-    };
+    return () => unsub();
   }, [user]);
 
-  const list = activeTab === "rooms" ? rooms : dms;
+  useEffect(() => {
+    if (!user) return;
 
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
+    const threadsRef = collection(db, 'dmThreads');
 
-    if (minutes < 1) return "now";
-    if (minutes < 60) return `${minutes}m`;
-    if (hours < 24) return `${hours}h`;
-    return `${days}d`;
+    // Only filter by participantIds – no orderBy here, so no index needed
+    const q = query(threadsRef, where('participantIds', 'array-contains', user.uid));
+
+    const unsub = onSnapshot(q, snapshot => {
+      const raw: DMThread[] = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        const participantIds = (data.participantIds || []) as string[];
+
+        const otherUserId = participantIds.find((id: string) => id !== user.uid);
+
+        return {
+          id: d.id,
+          participantIds,
+          otherUserName:
+            (otherUserId && data.otherUserNameMap?.[otherUserId]) ??
+            'FORZA user',
+          otherUserAvatar: otherUserId ? data.otherUserAvatarMap?.[otherUserId] : undefined,
+          lastMessage: data.lastMessage ?? '',
+          lastMessageAt: data.lastMessageAt?.toDate?.() ?? undefined,
+        };
+      });
+
+      // Sort in memory by lastMessageAt desc so UI still looks nice
+      const sorted = raw.sort((a, b) => {
+        const aTime = a.lastMessageAt?.getTime() ?? 0;
+        const bTime = b.lastMessageAt?.getTime() ?? 0;
+        return bTime - aTime;
+      });
+
+      setDmThreads(sorted);
+      setLoadingDMs(false);
+    });
+
+    return () => unsub();
+  }, [user]);
+
+  const handleCreateRoom = async () => {
+    if (!user) return;
+    const name = window.prompt('Room name');
+    if (!name) return;
+
+    const roomsRef = collection(db, 'rooms');
+
+    const payload = {
+      name: name.trim(),
+      createdBy: user.uid,
+      createdAt: serverTimestamp(),
+      lastMessage: '',
+      lastMessageAt: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(roomsRef, payload);
+    router.push(`/chat/rooms/${docRef.id}`);
   };
 
-  const handleRoomClick = (room: ChatRoom) => {
-    router.push(`/chat/rooms/${room.id}`);
-  };
-
-  const handleDmClick = (dm: DM) => {
-    router.push(`/chat/dm/${dm.otherUid}`);
-  };
+  const emptyStateText = useMemo(() => {
+    if (activeTab === 'rooms') {
+      return loadingRooms ? 'Loading rooms…' : 'No rooms yet. Create the first one.';
+    }
+    return loadingDMs ? 'Loading conversations…' : 'No conversations yet.';
+  }, [activeTab, loadingRooms, loadingDMs]);
 
   return (
-    <>
-      <Header />
-      <div className="p-4 space-y-4 text-sm">
-        {/* Top summary / create */}
-        <section className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] text-[#B5B5B5] uppercase tracking-[0.16em]">
-              Chat
-            </p>
-            <p className="text-[12px] text-[#E5E5E5] mt-0.5">
-              Talk slips, matches and ideas with others.
-            </p>
-          </div>
-          <button className="text-[11px] px-3 py-1.5 rounded-full bg-[#111111] border border-[#1F1F1F] text-[#B5B5B5] hover:text-[var(--forza-accent)] hover:border-[var(--forza-accent)] transition">
+    <div className="flex flex-col h-full">
+      {/* Header stays same style as other pages */}
+      <div className="px-4 pt-4 pb-3 border-b border-zinc-800/80">
+        <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase mb-1">Chat</p>
+        <p className="text-sm text-zinc-200">
+          Talk slips, matches and ideas with others.
+        </p>
+      </div>
+
+      {/* Tabs + New room button row */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-900">
+        <div className="flex w-full max-w-[260px] rounded-full bg-zinc-900 p-1 text-xs font-medium">
+          <button
+            className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1 ${
+              activeTab === 'rooms'
+                ? 'bg-zinc-100 text-black'
+                : 'text-zinc-400'
+            }`}
+            onClick={() => setActiveTab('rooms')}
+          >
+            <UsersThree size={16} weight={activeTab === 'rooms' ? 'fill' : 'regular'} />
+            <span>Rooms</span>
+          </button>
+          <button
+            className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1 ${
+              activeTab === 'dms'
+                ? 'bg-zinc-100 text-black'
+                : 'text-zinc-400'
+            }`}
+            onClick={() => setActiveTab('dms')}
+          >
+            <ChatDots size={16} weight={activeTab === 'dms' ? 'fill' : 'regular'} />
+            <span>DMs</span>
+          </button>
+        </div>
+
+        {activeTab === 'rooms' && (
+          <button
+            onClick={handleCreateRoom}
+            className="ml-3 rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-100"
+          >
             New room
           </button>
-        </section>
+        )}
+      </div>
 
-        {/* Tabs: Rooms / DMs */}
-        <section className="rounded-full bg-[#050505] border border-[#1F1F1F] p-1 flex text-[11px]">
-          <button
-            className={`flex-1 rounded-full py-1.5 ${activeTab === "rooms" ? "bg-[#111111] text-white" : "text-[#888]"}`}
-            onClick={() => setActiveTab("rooms")}
-          >
-            Rooms
-          </button>
-          <button
-            className={`flex-1 rounded-full py-1.5 ${activeTab === "dms" ? "bg-[#111111] text-white" : "text-[#888]"}`}
-            onClick={() => setActiveTab("dms")}
-          >
-            DMs
-          </button>
-        </section>
-
-        {/* Conversations list */}
-        <section className="space-y-2">
-          {list.map((item) => {
-            const isRoom = 'name' in item;
-            const displayName = isRoom ? item.name : item.username;
-            const time = isRoom ? formatTimeAgo(item.lastMessageAt) : formatTimeAgo(item.lastMessageAt);
-            const avatarText = isRoom
-              ? item.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
-              : item.username.slice(0, 2).toUpperCase();
-
-            return (
-              <article
-                key={item.id}
-                className="rounded-2xl bg-[#111111] border border-[#1F1F1F] px-3 py-2.5 flex items-center gap-3 hover:bg-[#141414] transition-colors"
-                onClick={() => isRoom ? handleRoomClick(item as ChatRoom) : handleDmClick(item as DM)}
-              >
-                {/* Avatar circle */}
-                <div className="h-9 w-9 rounded-full bg-[#0B0B0B] border border-[#1F1F1F] flex items-center justify-center text-[10px] text-[var(--forza-accent)] font-semibold">
-                  {avatarText}
-                </div>
-
-                {/* Text content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[12px] text-[#E5E5E5] truncate">
-                      {displayName}
-                    </p>
-                    <span className="text-[10px] text-[#777] shrink-0">
-                      {time}
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        {activeTab === 'rooms' ? (
+          rooms.length === 0 ? (
+            <p className="mt-6 text-center text-xs text-zinc-500">{emptyStateText}</p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {rooms.map(room => (
+                <button
+                  key={room.id}
+                  onClick={() => router.push(`/chat/rooms/${room.id}`)}
+                  className="w-full rounded-3xl bg-zinc-900 px-4 py-3 text-left border border-zinc-800 active:bg-zinc-800/80"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-zinc-50">{room.name}</p>
+                    <span className="ml-2 rounded-full bg-lime-400/10 text-[11px] px-2 py-0.5 text-lime-400">
+                      Room
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#888] truncate mt-0.5">
-                    {item.lastMessage}
+                  {room.lastMessage && (
+                    <p className="mt-0.5 text-xs text-zinc-400 line-clamp-1">
+                      {room.lastMessage}
+                    </p>
+                  )}
+                </button>
+              ))}
+            </div>
+          )
+        ) : dmThreads.length === 0 ? (
+          <p className="mt-6 text-center text-xs text-zinc-500">{emptyStateText}</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {dmThreads.map(thread => (
+              <button
+                key={thread.id}
+                onClick={() => router.push(`/chat/dm/${thread.id}`)}
+                className="w-full rounded-3xl bg-zinc-900 px-4 py-3 text-left border border-zinc-800 active:bg-zinc-800/80"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-100">
+                      {thread.otherUserName?.[0]?.toUpperCase() ?? 'F'}
+                    </div>
+                    <p className="text-sm text-zinc-50">{thread.otherUserName}</p>
+                  </div>
+                  <span className="ml-2 rounded-full bg-zinc-100/5 text-[11px] px-2 py-0.5 text-zinc-300">
+                    DM
+                  </span>
+                </div>
+                {thread.lastMessage && (
+                  <p className="mt-0.5 text-xs text-zinc-400 line-clamp-1">
+                    {thread.lastMessage}
                   </p>
-                </div>
-
-                {/* Right side badges */}
-                <div className="flex flex-col items-end gap-1 text-[10px]">
-                  {isRoom && (item as ChatRoom).badge && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#0B0B0B] border border-[var(--forza-accent)] text-[var(--forza-accent)]">
-                      {(item as ChatRoom).badge}
-                    </span>
-                  )}
-                  {isRoom && (item as ChatRoom).unread && (item as ChatRoom).unread! > 0 && (
-                    <span className="min-w-[18px] h-[18px] rounded-full bg-[var(--forza-accent)] text-black flex items-center justify-center text-[10px] font-semibold">
-                      {(item as ChatRoom).unread}
-                    </span>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </section>
-
-        {/* Small info note */}
-        <section className="pb-4">
-          <p className="text-[10px] text-[#777]">
-            Real-time chat with Firestore. Join rooms and send messages.
-          </p>
-        </section>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }

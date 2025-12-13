@@ -13,6 +13,14 @@ if (!apiKey || !authDomain || !projectId || !storageBucket || !messagingSenderId
   console.warn(
     "[FORZA] Firebase env variables missing. Check NEXT_PUBLIC_FIREBASE_* in .env.local"
   );
+  console.warn("[FORZA DEBUG] Missing vars:", {
+    apiKey: !!apiKey,
+    authDomain: !!authDomain,
+    projectId: !!projectId,
+    storageBucket: !!storageBucket,
+    messagingSenderId: !!messagingSenderId,
+    appId: !!appId
+  });
 }
 
 const firebaseConfig = {

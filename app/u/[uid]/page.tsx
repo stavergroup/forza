@@ -20,6 +20,7 @@ import { followUser, unfollowUser, isFollowingUser } from "@/lib/firestoreSocial
 import CommentsSheet from "@/components/CommentsSheet";
 import { SlipSocialBar } from "@/components/SlipSocialBar";
 import FollowersListModal from "@/components/FollowersListModal";
+import { PaperPlaneTilt } from '@phosphor-icons/react';
 
 type UserProfile = {
   displayName?: string;
@@ -95,6 +96,8 @@ export default function PublicProfilePage() {
   const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   const [selectedSlipForComments, setSelectedSlipForComments] = useState<string | null>(null);
+
+  const viewedUser = { id: uid, displayName: userProfile?.displayName, username: userProfile?.handle };
 
   // Fetch user profile
   useEffect(() => {
@@ -226,6 +229,32 @@ export default function PublicProfilePage() {
       setFollowLoading(false);
     }
   };
+
+  async function openOrCreateDM() {
+    if (!currentUser || !viewedUser) return;
+    if (currentUser.uid === viewedUser.id) return;
+
+    const ids = [currentUser.uid, viewedUser.id].sort();
+    const threadId = ids.join('_');
+
+    const threadRef = doc(db, 'dmThreads', threadId);
+    const snap = await getDoc(threadRef);
+
+    if (!snap.exists()) {
+      await setDoc(threadRef, {
+        participantIds: ids,
+        createdAt: serverTimestamp(),
+        lastMessage: '',
+        lastMessageAt: serverTimestamp(),
+        otherUserNameMap: {
+          [currentUser.uid]: viewedUser.displayName ?? viewedUser.username ?? 'FORZA user',
+          [viewedUser.id]: currentUser.displayName ?? currentUser.email ?? 'FORZA user',
+        },
+      });
+    }
+
+    router.push(`/chat/dm/${threadId}`);
+  }
 
   if (userLoading) {
     return (

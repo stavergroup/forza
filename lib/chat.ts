@@ -70,9 +70,11 @@ export function listenRoomTyping(roomId: string, callback: (users: string[]) => 
     const typingUsers: string[] = [];
     snapshot.docs.forEach((doc) => {
       const data = doc.data();
-      const updatedAt = data.updatedAt.toDate().getTime();
-      if (now - updatedAt < 5000) { // 5 seconds
-        typingUsers.push(data.username);
+      if (data.updatedAt) {
+        const updatedAt = data.updatedAt.toDate().getTime();
+        if (now - updatedAt < 5000) { // 5 seconds
+          typingUsers.push(data.username);
+        }
       }
     });
     callback(typingUsers);

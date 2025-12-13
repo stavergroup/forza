@@ -115,9 +115,11 @@ export default function LiveFeedSection() {
       limit(20)
     );
 
+    console.log("[FORZA DEBUG] Setting up live feed subscription");
     const unsub = onSnapshot(
       q,
       async (snapshot) => {
+        console.log("[FORZA DEBUG] Received snapshot with", snapshot.docs.length, "posts");
         try {
           const basePosts = snapshot.docs.map((d) => {
             const data = d.data() as any;
@@ -132,6 +134,8 @@ export default function LiveFeedSection() {
               createdAt: data.createdAt,
             };
           });
+
+          console.log("[FORZA DEBUG] Base posts:", basePosts.length);
 
           const enriched = await Promise.all(
             basePosts.map(async (post) => {
@@ -168,6 +172,7 @@ export default function LiveFeedSection() {
             })
           );
 
+          console.log("[FORZA DEBUG] Enriched items:", enriched.length);
           setItems(enriched);
         } catch (err) {
           console.error("[FORZA] live feed subscription outer error:", err);
@@ -177,6 +182,11 @@ export default function LiveFeedSection() {
       },
       (error) => {
         console.error("[FORZA] live feed subscription error:", error);
+        console.error("[FORZA DEBUG] Error details:", {
+          code: error.code,
+          message: error.message,
+          name: error.name
+        });
         setLoading(false);
       }
     );
