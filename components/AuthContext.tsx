@@ -4,18 +4,21 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 type AuthContextValue = {
   user: any;
+  profile: any;
   loading: boolean;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
+  profile: null,
   loading: true,
   logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [logout, setLogout] = useState<() => Promise<void>>(async () => {});
 
@@ -41,10 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     displayName: firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split("@")[0] : "FORZA user"),
                     photoURL: firebaseUser.photoURL || null,
                     handle: (firebaseUser.email ? firebaseUser.email.split("@")[0] : firebaseUser.uid.slice(0, 6)).toLowerCase(),
+                    handleLower: ((firebaseUser.email ? firebaseUser.email.split("@")[0] : firebaseUser.uid.slice(0, 6)).toLowerCase()).toLowerCase(),
                     updatedAt: serverTimestamp(),
                     createdAt: existing?.createdAt ?? serverTimestamp()
                   };
                   await setDoc(userRef, data, { merge: true });
+                  setProfile(data);
                   console.log("[FORZA] User profile upserted successfully");
                 } catch (err) {
                   console.error("[FORZA] Failed to upsert user profile", err);
@@ -64,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

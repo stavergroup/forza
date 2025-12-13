@@ -17,6 +17,7 @@ import {
 import { db } from '@/lib/firebaseClient';
 import { useAuth } from '@/components/AuthContext';
 import { ChatDots, UsersThree } from '@phosphor-icons/react';
+import NewDmSheet from '@/components/NewDmSheet';
 
 type Room = {
   id: string;
@@ -46,6 +47,7 @@ export default function ChatPage() {
   const [dmThreads, setDmThreads] = useState<DMThread[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [loadingDMs, setLoadingDMs] = useState(true);
+  const [newDmOpen, setNewDmOpen] = useState(false);
 
   // keep URL in sync with tab
   useEffect(() => {
@@ -192,6 +194,15 @@ export default function ChatPage() {
             New room
           </button>
         )}
+
+        {activeTab === 'dms' && (
+          <button
+            onClick={() => setNewDmOpen(true)}
+            className="ml-3 rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-100"
+          >
+            +
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -253,6 +264,8 @@ export default function ChatPage() {
           </div>
         )}
       </div>
+
+      <NewDmSheet open={newDmOpen} onClose={() => setNewDmOpen(false)} />
     </div>
   );
 }
