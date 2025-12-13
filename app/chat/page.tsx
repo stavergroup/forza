@@ -36,7 +36,7 @@ type DMThread = {
 };
 
 export default function ChatPage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'dms' ? 'dms' : 'rooms';

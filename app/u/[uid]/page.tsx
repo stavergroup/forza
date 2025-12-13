@@ -15,6 +15,7 @@ import {
   onSnapshot,
   setDoc,
   deleteDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { followUser, unfollowUser, isFollowingUser } from "@/lib/firestoreSocial";
 import CommentsSheet from "@/components/CommentsSheet";
