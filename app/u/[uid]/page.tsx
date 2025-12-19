@@ -21,6 +21,7 @@ import { followUser, unfollowUser, isFollowingUser } from "@/lib/firestoreSocial
 import CommentsSheet from "@/components/CommentsSheet";
 import { SlipSocialBar } from "@/components/SlipSocialBar";
 import FollowersListModal from "@/components/FollowersListModal";
+import { SlipCard } from "@/components/SlipCard";
 import { PaperPlaneTilt } from '@phosphor-icons/react';
 
 type UserProfile = {
@@ -440,95 +441,21 @@ export default function PublicProfilePage() {
                 const likesCount = slip.likeCount ?? 0;
                 const commentsCount = slip.commentsCount ?? 0;
 
+                const author = {
+                  id: uid,
+                  displayName: profileDisplayName,
+                  username: profileHandle.replace('@', ''),
+                  photoURL: avatarPhoto,
+                };
+
                 return (
-                  <article
+                  <SlipCard
                     key={slipId}
-                    className="rounded-3xl bg-[#050505] border border-[#151515] p-3.5 space-y-3"
-                  >
-                    {/* Top row: avatar + name + time */}
-                    <div className="flex items-center gap-3">
-                      {avatarPhoto ? (
-                        <img
-                          src={avatarPhoto}
-                          alt={profileDisplayName}
-                          className="h-9 w-9 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-9 w-9 rounded-full bg-[#101010] flex items-center justify-center text-[11px] font-semibold text-white">
-                          {avatarInitial}
-                        </div>
-                      )}
-
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-medium text-white">
-                          {profileDisplayName}
-                        </span>
-                        <div className="flex items-center gap-1 text-[11px] text-[#8A8A8A]">
-                          <span>{profileHandle}</span>
-                          <span>•</span>
-                          <span>{createdAgo}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Slip preview */}
-                    <div className="rounded-3xl bg-[#050505] border border-[var(--forza-accent-soft,#27361a)] px-3.5 py-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[12px] text-[#E4E4E4]">
-                          Slip preview
-                        </span>
-                        <span className="text-[11px] text-[var(--forza-accent)] font-semibold">
-                          {picksCount}-pick · {totalOdds.toFixed(2)}x
-                        </span>
-                      </div>
-
-                      <div className="space-y-2 mt-1">
-                        {slip.selections.map((b, idx) => (
-                          <div
-                            key={idx}
-                            className="rounded-2xl bg-[#0B0B0B] border border-[#1F1F1F] px-3 py-2 text-[11px]"
-                          >
-                            <p className="text-white">
-                              {b.homeTeam}{" "}
-                              <span className="text-[#777]">vs</span>{" "}
-                              {b.awayTeam}
-                            </p>
-                            <p className="text-[#A8A8A8]">
-                              {b.market} • {b.pick}
-                              {typeof b.odd === "number" &&
-                                !Number.isNaN(b.odd) && (
-                                  <span className="text-[var(--forza-accent)]">
-                                    {" "}
-                                    @ {b.odd.toFixed(2)}
-                                  </span>
-                                )}
-                            </p>
-                            {b.kickoffTime && (
-                              <p className="text-[10px] text-[#7A7A7A] mt-[2px]">
-                                Kickoff:{" "}
-                                {new Date(
-                                  b.kickoffTime
-                                ).toLocaleString(undefined, {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  day: "2-digit",
-                                  month: "short",
-                                })}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <SlipSocialBar
-                      slipId={slipId}
-                      initialLikeCount={likesCount}
-                      initialCommentCount={commentsCount}
-                      onOpenComments={() => setSelectedSlipForComments(slipId)}
-                    />
-
-                  </article>
+                    slip={slip}
+                    author={author}
+                    createdAgo={createdAgo}
+                    onOpenComments={() => setSelectedSlipForComments(slipId)}
+                  />
                 );
               })}
             </div>

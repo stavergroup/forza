@@ -10,6 +10,7 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
+import { computeSlipLabel } from "@/lib/computeSlipLabel";
 
 export type SlipBet = {
   homeTeam: string;
@@ -69,17 +70,25 @@ export default function SlipActions({
 
       const totalOdds = bets.reduce((acc, b) => acc * (b.odd || 1), 1);
 
+      const selections = bets.map((b) => ({
+        homeTeam: b.homeTeam,
+        awayTeam: b.awayTeam,
+        market: b.market,
+        pick: b.pick,
+        odd: b.odd ?? null,
+        kickoffTime: b.kickoffTime ?? null,
+      }));
+
+      const label = computeSlipLabel({
+        totalOdds,
+        selections,
+        source,
+      });
+
       const slipRef = await addDoc(collection(db, "slips"), {
         userId: user.uid,
         totalOdds,
-        selections: bets.map((b) => ({
-          homeTeam: b.homeTeam,
-          awayTeam: b.awayTeam,
-          market: b.market,
-          pick: b.pick,
-          odd: b.odd ?? null,
-          kickoffTime: b.kickoffTime ?? null,
-        })),
+        selections,
         source,
         rawText,
         tracking: mode === "track" || mode === "post",
@@ -87,6 +96,8 @@ export default function SlipActions({
         userDisplayName: user.displayName || "FORZA user",
         userUsername: userData.handle || "",
         userPhotoURL: user.photoURL || null,
+        ...label,
+        labelComputedAt: serverTimestamp(),
       });
 
       if (mode === "post") {

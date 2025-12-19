@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
 import { ShareNetwork } from "@phosphor-icons/react";
+import { computeSlipLabel } from "@/lib/computeSlipLabel";
 
 type SlipSelection = {
   homeTeam: string;
@@ -189,6 +190,12 @@ export default function SlipPage() {
         return acc * o;
       }, 1);
 
+  const label = computeSlipLabel({
+    totalOdds,
+    selections: slip.selections,
+    source: slip.source,
+  });
+
   return (
     <div className="min-h-screen bg-[#020202] text-white px-4 py-6">
       {/* Back link */}
@@ -228,6 +235,13 @@ export default function SlipPage() {
         </div>
       </div>
 
+      {/* Label pill */}
+      <div className="flex justify-center mb-4">
+        <span className="inline-block px-3 py-1 text-sm font-medium bg-[#1f1f1f] border border-[#333] rounded-full text-white">
+          {label.labelText}
+        </span>
+      </div>
+
       {/* Slip Card */}
       <div className="bg-[#050505] border border-[#151515] rounded-3xl p-4 mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -248,10 +262,15 @@ export default function SlipPage() {
         </div>
 
         <div className="text-center mb-4">
-          <span className="text-[24px] font-semibold text-[#a4ff2f]">
-            {totalOdds.toFixed(2)}x
-          </span>
-        </div>
+           <div className="flex items-center justify-center gap-2">
+             <span className={`text-sm font-semibold px-2 py-1 rounded ${label.tierColor} bg-black/20`}>
+               {label.tier}
+             </span>
+             <span className="text-[24px] font-semibold text-[#a4ff2f]">
+               {totalOdds.toFixed(2)}x
+             </span>
+           </div>
+         </div>
 
         <div className="space-y-3">
           {slip.selections.map((b, idx) => (

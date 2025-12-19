@@ -1,6 +1,7 @@
 "use client";
 
 import { SlipSocialBar } from "./SlipSocialBar";
+import { computeSlipLabel } from "@/lib/computeSlipLabel";
 
 type SlipSelection = {
   homeTeam: string;
@@ -21,10 +22,16 @@ type SlipAuthor = {
 
 type SlipCardProps = {
   slip: {
-    id: string;
+    id?: string;
     selections?: SlipSelection[]; // New format
     bets?: any[]; // Old format (backward compatibility)
     totalOdds?: number | null;
+    // Label fields
+    tier?: string;
+    badges?: string[];
+    labelText?: string;
+    tierColor?: string;
+    badgeColors?: Record<string, string>;
   };
   author?: SlipAuthor;
   createdAgo?: string;
@@ -33,6 +40,8 @@ type SlipCardProps = {
 };
 
 export function SlipCard({ slip, author, createdAgo, onOpenComments, compact }: SlipCardProps) {
+  const slipId = slip.id || "";
+
   const authorName =
     author?.displayName && author.displayName.trim().length > 0
       ? author.displayName
@@ -59,6 +68,21 @@ export function SlipCard({ slip, author, createdAgo, onOpenComments, compact }: 
               : 1;
           return acc * o;
         }, 1);
+
+  // Compute label if not persisted
+  const label = slip.labelText
+    ? {
+        tier: slip.tier,
+        badges: slip.badges || [],
+        labelText: slip.labelText,
+        tierColor: slip.tierColor,
+        badgeColors: slip.badgeColors || {},
+      }
+    : computeSlipLabel({
+        totalOdds,
+        selections,
+        source: (slip as any).source,
+      });
 
   const containerClasses = compact
     ? "rounded-2xl bg-[#050505] border border-[#151515] p-2 space-y-2"
@@ -93,16 +117,30 @@ export function SlipCard({ slip, author, createdAgo, onOpenComments, compact }: 
         </div>
       )}
 
+      {/* Label pill */}
+      {!compact && label.labelText && (
+        <div className="flex justify-center">
+          <span className="inline-block px-2 py-1 text-xs font-medium bg-[#1f1f1f] border border-[#333] rounded-full text-white">
+            {label.labelText}
+          </span>
+        </div>
+      )}
+
       {/* Slip preview */}
       <div className="rounded-3xl bg-[#050505] border border-[var(--forza-accent-soft,#27361a)] px-3.5 py-3 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-[12px] text-[#E4E4E4]">
-            Slip preview
-          </span>
-          <span className="text-[11px] text-[var(--forza-accent)] font-semibold">
-            {picksCount}-pick · {totalOdds.toFixed(2)}x
-          </span>
-        </div>
+           <span className="text-[12px] text-[#E4E4E4]">
+             Slip preview
+           </span>
+           <div className="flex items-center gap-1">
+             <span className={`text-[10px] font-semibold px-1 py-0.5 rounded ${label.tierColor} bg-black/20`}>
+               {label.tier}
+             </span>
+             <span className="text-[11px] text-[var(--forza-accent)] font-semibold">
+               {picksCount}-pick · {totalOdds.toFixed(2)}x
+             </span>
+           </div>
+         </div>
 
         <div className="space-y-2 mt-1">
           {selections.map((b: any, idx: number) => (
@@ -145,10 +183,10 @@ export function SlipCard({ slip, author, createdAgo, onOpenComments, compact }: 
 
       {!compact && onOpenComments && (
         <SlipSocialBar
-          slipId={slip.id}
+          slipId={slipId}
           initialLikeCount={0}
           initialCommentCount={0}
-          onOpenComments={() => onOpenComments(slip.id)}
+          onOpenComments={() => onOpenComments(slipId)}
         />
       )}
     </article>
