@@ -207,7 +207,6 @@ export default function SearchOverlay({ open, context, onClose }: SearchOverlayP
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={placeholder}
             className="flex-1 bg-zinc-900 rounded-full px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none"
-            autoFocus
           />
           <button onClick={onClose} className="text-zinc-500 text-sm">
             Cancel

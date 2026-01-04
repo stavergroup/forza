@@ -1,9 +1,11 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useBlurOnRouteChange } from "@/lib/hooks/useBlurOnRouteChange";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  useBlurOnRouteChange();
 
   // Hide full layout on auth pages
   if (pathname.startsWith("/auth")) {
